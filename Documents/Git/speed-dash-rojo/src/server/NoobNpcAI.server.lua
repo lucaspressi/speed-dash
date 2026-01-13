@@ -296,7 +296,11 @@ local function fireLaser(targetHrp: BasePart)
 
 	print("[NoobAI] Charging laser...")
 
+	-- Marca como carregando ANTES de parar
+	isChargingLaser = true
+
 	-- Para de andar durante o laser
+	local originalSpeed = humanoid.WalkSpeed
 	humanoid.WalkSpeed = 0
 	stopWalking()
 
@@ -309,12 +313,17 @@ local function fireLaser(targetHrp: BasePart)
 	-- Aguarda windup
 	task.wait(LASER_WINDUP_TIME)
 
-	isChargingLaser = false
+	-- SEMPRE reseta flag e speed (mesmo se cancelar)
+	local function cleanup()
+		isChargingLaser = false
+		humanoid.WalkSpeed = CHASE_SPEED
+		print("[NoobAI] Laser cleanup - speed restored to", humanoid.WalkSpeed)
+	end
 
 	-- Verifica se ainda tem LOS após windup
 	if not targetHrp.Parent or not hasLineOfSight(targetHrp) then
 		print("[NoobAI] Laser cancelled - lost LOS during windup")
-		humanoid.WalkSpeed = CHASE_SPEED
+		cleanup()
 		return
 	end
 
@@ -368,7 +377,7 @@ local function fireLaser(targetHrp: BasePart)
 
 	-- Volta a andar após um pequeno delay
 	task.wait(0.2)
-	humanoid.WalkSpeed = CHASE_SPEED
+	cleanup()
 end
 
 -- ==========================
@@ -567,8 +576,21 @@ for _, part in pairs(noob:GetDescendants()) do
 	end
 end
 
--- Keep NPC in bounds hard clamp (anti-bug)
+-- Keep NPC in bounds hard clamp (anti-bug) + safety checks
 RunService.Heartbeat:Connect(function()
+	-- Garante que HRP nunca está anchored (bug fix comum)
+	if hrp.Anchored then
+		hrp.Anchored = false
+		warn("[NoobAI] HRP was anchored! Fixed.")
+	end
+
+	-- Garante que WalkSpeed nunca fica em 0 fora do laser
+	if not isChargingLaser and humanoid.WalkSpeed == 0 then
+		humanoid.WalkSpeed = PATROL_SPEED
+		warn("[NoobAI] WalkSpeed was 0! Reset to", PATROL_SPEED)
+	end
+
+	-- Bounds clamp
 	if not isInBounds(hrp.Position) then
 		local clamped = clampToBounds(hrp.Position)
 		hrp.CFrame = CFrame.new(clamped.X, hrp.Position.Y, clamped.Z)
@@ -663,7 +685,12 @@ RunService.Heartbeat:Connect(function(dt)
 
 		-- chase com pathfinding (só se não estiver carregando laser)
 		if not isChargingLaser then
-			moveToWithPath(pHrp.Position, CHASE_SPEED)
+			-- Se o path está vazio ou bugou, tenta MoveTo direto
+			if not currentWaypoints or #currentWaypoints == 0 then
+				moveToSimple(pHrp.Position, CHASE_SPEED)
+			else
+				moveToWithPath(pHrp.Position, CHASE_SPEED)
+			end
 		end
 		return
 	end
