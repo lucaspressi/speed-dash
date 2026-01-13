@@ -1,0 +1,32 @@
+# Project place file
+/speed-dash-rojo.rbxlx
+
+# Roblox Studio lock files
+/*.rbxlx.lock
+/*.rbxl.lock
+
+sourcemap.json
+
+# Ignore all files outside project directory
+../
+../../
+../../../
+
+# Ignore temp files
+tmpclaude-*
+*.tmp
+*.log
+nul
+
+# Ignore build files
+*.rbxl
+!clean-build.rbxl
+
+# Ignore IDE files
+.vscode/
+.idea/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+desktop.ini

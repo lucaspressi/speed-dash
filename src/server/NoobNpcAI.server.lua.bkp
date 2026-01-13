@@ -1,0 +1,181 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local noob = workspace:WaitForChild("Buff Noob")
+local humanoid = noob:WaitForChild("Humanoid")
+local hrp = noob:WaitForChild("HumanoidRootPart")
+
+-- Get Stage2NpcKill bounds
+local stage2Area = workspace:WaitForChild("Stage2NpcKill")
+
+local minX, maxX = math.huge, -math.huge
+local minZ, maxZ = math.huge, -math.huge
+
+for _, part in pairs(stage2Area:GetChildren()) do
+    if part:IsA("BasePart") then
+        local pos = part.Position
+        local size = part.Size
+        
+        minX = math.min(minX, pos.X - size.X/2)
+        maxX = math.max(maxX, pos.X + size.X/2)
+        minZ = math.min(minZ, pos.Z - size.Z/2)
+        maxZ = math.max(maxZ, pos.Z + size.Z/2)
+    end
+end
+
+-- Calculate center of Stage2
+local centerX = (minX + maxX) / 2
+local centerZ = (minZ + maxZ) / 2
+local centerPosition = Vector3.new(centerX, hrp.Position.Y, centerZ)
+
+print("Stage2 center: " .. tostring(centerPosition))
+
+-- NPC settings
+local CHASE_SPEED = 28
+local RETURN_SPEED = 16
+local DETECTION_RANGE = 200
+local CHASE_UPDATE_RATE = 0.15
+
+humanoid.WalkSpeed = CHASE_SPEED
+
+-- Load classic R6 walk animation
+local walkAnim = Instance.new("Animation")
+walkAnim.AnimationId = "rbxassetid://180426354"
+
+local animator = humanoid:FindFirstChildOfClass("Animator")
+if not animator then
+    animator = Instance.new("Animator")
+    animator.Parent = humanoid
+end
+
+local walkTrack = animator:LoadAnimation(walkAnim)
+walkTrack.Looped = true
+walkTrack.Priority = Enum.AnimationPriority.Movement
+
+local isWalking = false
+
+local function isInBounds(position)
+    return position.X >= minX and position.X <= maxX and position.Z >= minZ and position.Z <= maxZ
+end
+
+local function isPlayerInStage2(player)
+    local character = player.Character
+    if not character then return false end
+    
+    local playerHrp = character:FindFirstChild("HumanoidRootPart")
+    if not playerHrp then return false end
+    
+    return isInBounds(playerHrp.Position)
+end
+
+local function getNearestPlayer()
+    local nearestPlayer = nil
+    local nearestDist = DETECTION_RANGE
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if isPlayerInStage2(player) then
+            local character = player.Character
+            if character then
+                local playerHrp = character:FindFirstChild("HumanoidRootPart")
+                local playerHumanoid = character:FindFirstChild("Humanoid")
+                
+                if playerHrp and playerHumanoid and playerHumanoid.Health > 0 then
+                    local dist = (playerHrp.Position - hrp.Position).Magnitude
+                    if dist < nearestDist then
+                        nearestDist = dist
+                        nearestPlayer = player
+                    end
+                end
+            end
+        end
+    end
+    
+    return nearestPlayer
+end
+
+local function clampToBounds(position)
+    local x = math.clamp(position.X, minX + 5, maxX - 5)
+    local z = math.clamp(position.Z, minZ + 5, maxZ - 5)
+    return Vector3.new(x, position.Y, z)
+end
+
+local function startWalking()
+    if not isWalking then
+        walkTrack:Play()
+        isWalking = true
+    end
+end
+
+local function stopWalking()
+    if isWalking then
+        walkTrack:Stop()
+        isWalking = false
+    end
+end
+
+local function chasePlayer(player)
+    local character = player.Character
+    if not character then return end
+    
+    local playerHrp = character:FindFirstChild("HumanoidRootPart")
+    if not playerHrp then return end
+    
+    local targetPos = playerHrp.Position
+    targetPos = clampToBounds(targetPos)
+    
+    humanoid.WalkSpeed = CHASE_SPEED
+    humanoid:MoveTo(targetPos)
+    startWalking()
+end
+
+local function returnToCenter()
+    local dist = (hrp.Position - centerPosition).Magnitude
+    
+    if dist > 5 then
+        humanoid.WalkSpeed = RETURN_SPEED
+        humanoid:MoveTo(centerPosition)
+        startWalking()
+    else
+        humanoid:MoveTo(hrp.Position)
+        stopWalking()
+    end
+end
+
+-- Kill player on touch
+for _, part in pairs(noob:GetDescendants()) do
+    if part:IsA("BasePart") then
+        part.Touched:Connect(function(hit)
+            local character = hit.Parent
+            local player = Players:GetPlayerFromCharacter(character)
+            
+            if player then
+                local playerHumanoid = character:FindFirstChild("Humanoid")
+                if playerHumanoid and playerHumanoid.Health > 0 then
+                    playerHumanoid.Health = 0
+                    print("Noob killed " .. player.Name .. "!")
+                end
+            end
+        end)
+    end
+end
+
+-- Keep NPC in bounds
+RunService.Heartbeat:Connect(function()
+    if not isInBounds(hrp.Position) then
+        local clampedPos = clampToBounds(hrp.Position)
+        hrp.CFrame = CFrame.new(clampedPos.X, hrp.Position.Y, clampedPos.Z)
+    end
+end)
+
+-- Main chase loop
+while true do
+    local target = getNearestPlayer()
+    
+    if target then
+        chasePlayer(target)
+    else
+        returnToCenter()
+    end
+    
+    task.wait(CHASE_UPDATE_RATE)
+end
