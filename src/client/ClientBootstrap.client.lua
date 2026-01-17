@@ -86,30 +86,59 @@ local snapshotReceived = false
 -- 1. Snapshot completo (table): {[3]=true, [9]=false, [25]=true}
 -- 2. Update individual (multiplier, owned): (3, true)
 TreadmillOwnershipUpdated.OnClientEvent:Connect(function(multiplierOrSnapshot, owned)
+	-- Safe string conversion function
+	local function safeStr(val)
+		if type(val) == "table" then
+			return "{table}"
+		elseif val == nil then
+			return "nil"
+		else
+			return tostring(val)
+		end
+	end
+
 	if type(multiplierOrSnapshot) == "table" then
 		-- Formato: snapshot completo (usado no join)
 		print("[CLIENT] TreadmillOwnershipUpdated received SNAPSHOT:")
 		for mult, isOwned in pairs(multiplierOrSnapshot) do
-			print("[CLIENT]   x" .. tostring(mult) .. " = " .. tostring(isOwned))
-			treadmillOwnershipCache[mult] = isOwned
+			-- Debug: show exact types received
+			local multType = type(mult)
+			local ownedType = type(isOwned)
+			print("[CLIENT]   x" .. safeStr(mult) .. " = " .. safeStr(isOwned) .. " (types: " .. multType .. ", " .. ownedType .. ")")
 
-			-- Atualiza atributo do player (sincronização)
-			local key = "TreadmillX" .. tostring(mult) .. "Owned"
-			player:SetAttribute(key, isOwned)
+			-- Convert string keys to numbers if needed (RemoteEvents might stringify keys)
+			local multNum = tonumber(mult) or mult
+			local ownedBool = (isOwned == true or isOwned == 1 or isOwned == "true")
+
+			if type(multNum) == "number" then
+				treadmillOwnershipCache[multNum] = ownedBool
+
+				-- Atualiza atributo do player (sincronização)
+				local key = "TreadmillX" .. tostring(multNum) .. "Owned"
+				player:SetAttribute(key, ownedBool)
+				print("[CLIENT]   ✅ Updated cache: x" .. multNum .. " = " .. tostring(ownedBool))
+			else
+				warn("[CLIENT] ⚠️ Could not convert mult to number: " .. safeStr(mult) .. " (type: " .. multType .. ")")
+			end
 		end
 		print("[CLIENT] Ownership cache fully updated from snapshot!")
 		snapshotReceived = true
 	else
 		-- Formato: update individual (usado após compra)
 		local multiplier = multiplierOrSnapshot
-		print("[CLIENT] TreadmillOwnershipUpdated received: x" .. tostring(multiplier) .. " = " .. tostring(owned))
-		treadmillOwnershipCache[multiplier] = owned
+		print("[CLIENT] TreadmillOwnershipUpdated received: x" .. safeStr(multiplier) .. " = " .. safeStr(owned))
 
-		-- Atualiza o atributo local também (redundante mas garante sincronização)
-		local key = "TreadmillX" .. tostring(multiplier) .. "Owned"
-		player:SetAttribute(key, owned)
+		if type(multiplier) == "number" then
+			treadmillOwnershipCache[multiplier] = (owned == true or owned == 1)
 
-		print("[CLIENT] Ownership cache updated. Can now use x" .. tostring(multiplier) .. " treadmill!")
+			-- Atualiza o atributo local também (redundante mas garante sincronização)
+			local key = "TreadmillX" .. tostring(multiplier) .. "Owned"
+			player:SetAttribute(key, (owned == true or owned == 1))
+
+			print("[CLIENT] Ownership cache updated. Can now use x" .. safeStr(multiplier) .. " treadmill!")
+		else
+			warn("[CLIENT] Invalid ownership update: multiplier=" .. safeStr(multiplier) .. ", owned=" .. safeStr(owned))
+		end
 	end
 end)
 
@@ -128,10 +157,26 @@ if snapshotReceived then
 else
 	warn("[CLIENT] ⚠️ Snapshot timeout! Falling back to player Attributes...")
 	-- Fallback: lê de Attributes do player (se server setou antes)
-	treadmillOwnershipCache[3] = player:GetAttribute("TreadmillX3Owned") == true
-	treadmillOwnershipCache[9] = player:GetAttribute("TreadmillX9Owned") == true
-	treadmillOwnershipCache[25] = player:GetAttribute("TreadmillX25Owned") == true
-	print("[CLIENT] Fallback cache: x3=" .. tostring(treadmillOwnershipCache[3]) .. " x9=" .. tostring(treadmillOwnershipCache[9]) .. " x25=" .. tostring(treadmillOwnershipCache[25]))
+	local attr3 = player:GetAttribute("TreadmillX3Owned")
+	local attr9 = player:GetAttribute("TreadmillX9Owned")
+	local attr25 = player:GetAttribute("TreadmillX25Owned")
+
+	treadmillOwnershipCache[3] = (attr3 == true)
+	treadmillOwnershipCache[9] = (attr9 == true)
+	treadmillOwnershipCache[25] = (attr25 == true)
+
+	-- Safe print with type checking
+	local function safeStr(val)
+		if type(val) == "table" then
+			return "{table}"
+		elseif val == nil then
+			return "nil"
+		else
+			return tostring(val)
+		end
+	end
+
+	print("[CLIENT] Fallback cache: x3=" .. safeStr(treadmillOwnershipCache[3]) .. " x9=" .. safeStr(treadmillOwnershipCache[9]) .. " x25=" .. safeStr(treadmillOwnershipCache[25]))
 end
 
 local lastPosition = nil
@@ -222,7 +267,7 @@ end)
 -- 💀 SOM DE MORTE PELO NPC (MEME BRAINROT)
 local npcKillSound = Instance.new("Sound")
 npcKillSound.Name = "NpcKill"
-npcKillSound.SoundId = "rbxassetid://6308706396"  -- Vine Boom (meme)
+npcKillSound.SoundId = "rbxassetid://12221967"  -- Skull emoji (tuntuntun) meme
 npcKillSound.Volume = 1
 npcKillSound.Parent = soundFolder
 print("[CLIENT] 🔊 NPC kill sound created: " .. npcKillSound.SoundId)

@@ -7,22 +7,46 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local Remotes = ReplicatedStorage:WaitForChild("Remotes")
-local UpdateUIEvent = Remotes:WaitForChild("UpdateUI")
-local RebirthEvent = Remotes:WaitForChild("Rebirth")
-local VerifyGroupEvent = Remotes:WaitForChild("VerifyGroup")
-local ClaimGiftEvent = Remotes:WaitForChild("ClaimGift")
-local ShowWinEvent = Remotes:WaitForChild("ShowWin")
-local PromptSpeedBoostEvent = Remotes:WaitForChild("PromptSpeedBoost")
-local PromptWinsBoostEvent = Remotes:WaitForChild("PromptWinsBoost")
-local Prompt100KSpeedEvent = Remotes:WaitForChild("Prompt100KSpeed") -- ✅ CORRIGIDO
-local Prompt1MSpeedEvent = Remotes:WaitForChild("Prompt1MSpeed")
-local Prompt10MSpeedEvent = Remotes:WaitForChild("Prompt10MSpeed")
+local Remotes = ReplicatedStorage:WaitForChild("Remotes", 30)
+
+if not Remotes then
+	warn("[UIHandler] ⚠️ Remotes folder not found! UI will not work.")
+	return
+end
+
+print("[UIHandler] ✅ Remotes folder found")
+
+local UpdateUIEvent = Remotes:WaitForChild("UpdateUI", 10)
+local RebirthEvent = Remotes:WaitForChild("Rebirth", 10)
+local VerifyGroupEvent = Remotes:WaitForChild("VerifyGroup", 10)
+local ClaimGiftEvent = Remotes:WaitForChild("ClaimGift", 10)
+local ShowWinEvent = Remotes:WaitForChild("ShowWin", 10)
+local PromptSpeedBoostEvent = Remotes:WaitForChild("PromptSpeedBoost", 10)
+local PromptWinsBoostEvent = Remotes:WaitForChild("PromptWinsBoost", 10)
+local Prompt100KSpeedEvent = Remotes:WaitForChild("Prompt100KSpeed", 10)
+local Prompt1MSpeedEvent = Remotes:WaitForChild("Prompt1MSpeed", 10)
+local Prompt10MSpeedEvent = Remotes:WaitForChild("Prompt10MSpeed", 10)
+
+if not UpdateUIEvent then
+	warn("[UIHandler] ⚠️ UpdateUI RemoteEvent not found! UI updates will not work.")
+	return
+end
+
+print("[UIHandler] ✅ All RemoteEvents found")
 
 local GROUP_ID = 0 -- Replace with your group ID
 
--- Wait for UI (critical elements only)
-local speedGameUI = playerGui:WaitForChild("SpeedGameUI")
+-- Wait for UI (with timeout to prevent blocking)
+local speedGameUI = playerGui:WaitForChild("SpeedGameUI", 10)
+
+if not speedGameUI then
+	warn("[UIHandler] ⚠️ SpeedGameUI not found in PlayerGui after 10 seconds!")
+	warn("[UIHandler] ⚠️ UI Handler will not function. Please add SpeedGameUI to StarterGui.")
+	warn("[UIHandler] ℹ️  Core gameplay (XP/levels) will still work, but UI won't update.")
+	return  -- Exit gracefully - don't block other systems
+end
+
+print("[UIHandler] ✅ SpeedGameUI found!")
 
 -- Try to find UI elements (non-blocking)
 local winsFrame = speedGameUI:FindFirstChild("WinsFrame")

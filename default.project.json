@@ -13,6 +13,12 @@
     "ServerScriptService": {
       "$className": "ServerScriptService",
 
+      "CleanupBadScripts": {
+        "$path": "src/server/CleanupBadScripts.server.lua"
+      },
+      "SystemValidator": {
+        "$path": "src/server/SystemValidator.server.lua"
+      },
       "RemotesBootstrap": {
         "$path": "src/server/RemotesBootstrap.server.lua"
       },
@@ -35,16 +41,25 @@
         "$path": "src/server/LeaderboardUpdater.server.lua"
       },
       "ProgressionValidator": {
-        "$path": "src/server/ProgressionValidator.server.lua"
+        "$path": "src/server/ProgressionValidator.server.lua",
+        "$properties": {
+          "Disabled": true
+        }
       },
       "AxeController": {
         "$path": "src/server/AxeController.server.lua"
       },
       "RollingBallController": {
-        "$path": "src/server/RollingBallController.server.lua"
+        "$path": "src/server/RollingBallController.server.lua",
+        "$properties": {
+          "Disabled": true
+        }
       },
       "NoobNpcAI": {
         "$path": "src/server/NoobNpcAI.server.lua"
+      },
+      "ClientTestListener": {
+        "$path": "src/server/ClientTestListener.server.lua"
       },
       "SmokeTest": {
         "$path": "src/server/SmokeTest.server.lua"

@@ -1,0 +1,427 @@
+{
+  "version": "1.0.0",
+  "generated": "2026-01-17",
+  "actions": [
+    {
+      "action_name": "get_player_state",
+      "description": "Query current player data (all fields)",
+      "required_inputs": {
+        "userId": "number"
+      },
+      "optional_inputs": {},
+      "roblox_function": "getPlayerState",
+      "roblox_module": "AdminControlFunctions (NEW)",
+      "source_file": "src/server/SpeedGameServer.server.lua",
+      "source_reference": "Lines 201-216 (getPlayerData)",
+      "fields_read": [
+        "TotalXP",
+        "Level",
+        "XP",
+        "XPRequired",
+        "Wins",
+        "Rebirths",
+        "Multiplier",
+        "StepBonus",
+        "SpeedBoostLevel",
+        "WinBoostLevel",
+        "TreadmillX3Owned",
+        "TreadmillX9Owned",
+        "TreadmillX25Owned",
+        "GiftClaimed"
+      ],
+      "fields_modified": [],
+      "validation": {
+        "userId": "Must be valid Roblox user ID (number > 0)"
+      },
+      "derived_values": [
+        "CurrentSpeedBoostMultiplier",
+        "CurrentWinBoostMultiplier",
+        "WalkSpeed"
+      ],
+      "side_effects": [],
+      "requires_player_online": true,
+      "security_level": "viewer"
+    },
+    {
+      "action_name": "set_player_speed",
+      "description": "Set player TotalXP directly (forcing Speed to exact value, including Speed = 1)",
+      "required_inputs": {
+        "userId": "number",
+        "newTotalXP": "number"
+      },
+      "optional_inputs": {},
+      "roblox_function": "setPlayerSpeed",
+      "roblox_module": "AdminControlFunctions (NEW)",
+      "source_file": "src/server/SpeedGameServer.server.lua",
+      "source_reference": "Lines 218-226 (savePlayerData)",
+      "fields_read": [],
+      "fields_modified": [
+        "TotalXP",
+        "Level",
+        "XP",
+        "XPRequired"
+      ],
+      "validation": {
+        "userId": "Must be valid Roblox user ID",
+        "newTotalXP": "Must be >= 0"
+      },
+      "derived_values": [
+        "Level (calculated from TotalXP via ProgressionMath.LevelFromTotalXP)",
+        "XP (progress into current level)",
+        "XPRequired (calculated from Level via ProgressionMath.XPRequired)",
+        "WalkSpeed (16 + min(Level, 500))"
+      ],
+      "side_effects": [
+        "Updates leaderstats.Speed",
+        "Fires UpdateUI RemoteEvent to client",
+        "Updates character WalkSpeed",
+        "Persists to DataStore2"
+      ],
+      "requires_player_online": true,
+      "security_level": "moderator"
+    },
+    {
+      "action_name": "set_player_level",
+      "description": "Set player Level and XP directly (also recalculates TotalXP)",
+      "required_inputs": {
+        "userId": "number",
+        "newLevel": "number"
+      },
+      "optional_inputs": {
+        "newXP": "number (default: 0)"
+      },
+      "roblox_function": "setPlayerLevel",
+      "roblox_module": "AdminControlFunctions (NEW)",
+      "source_file": "src/server/SpeedGameServer.server.lua",
+      "source_reference": "Lines 881-884 (admin adjust level)",
+      "fields_read": [],
+      "fields_modified": [
+        "Level",
+        "XP",
+        "TotalXP",
+        "XPRequired"
+      ],
+      "validation": {
+        "userId": "Must be valid Roblox user ID",
+        "newLevel": "Must be 1-10000",
+        "newXP": "Must be 0 to (XPRequired - 1)"
+      },
+      "derived_values": [
+        "TotalXP (calculated from Level + XP)",
+        "XPRequired (calculated from Level)",
+        "WalkSpeed (16 + min(Level, 500))"
+      ],
+      "side_effects": [
+        "Updates leaderstats.Speed",
+        "Fires UpdateUI RemoteEvent to client",
+        "Updates character WalkSpeed",
+        "Persists to DataStore2"
+      ],
+      "requires_player_online": true,
+      "security_level": "moderator"
+    },
+    {
+      "action_name": "set_player_wins",
+      "description": "Set player Wins to exact value",
+      "required_inputs": {
+        "userId": "number",
+        "newWins": "number"
+      },
+      "optional_inputs": {},
+      "roblox_function": "setPlayerWins",
+      "roblox_module": "AdminControlFunctions (NEW)",
+      "source_file": "src/server/SpeedGameServer.server.lua",
+      "source_reference": "Line 934 (win block handler)",
+      "fields_read": [],
+      "fields_modified": [
+        "Wins"
+      ],
+      "validation": {
+        "userId": "Must be valid Roblox user ID",
+        "newWins": "Must be >= 0"
+      },
+      "derived_values": [],
+      "side_effects": [
+        "Updates leaderstats.Wins",
+        "Fires UpdateUI RemoteEvent to client",
+        "Persists to DataStore2"
+      ],
+      "requires_player_online": true,
+      "security_level": "moderator"
+    },
+    {
+      "action_name": "add_player_wins",
+      "description": "Add/remove Wins by delta amount",
+      "required_inputs": {
+        "userId": "number",
+        "deltaWins": "number (can be negative)"
+      },
+      "optional_inputs": {},
+      "roblox_function": "addPlayerWins",
+      "roblox_module": "AdminControlFunctions (NEW)",
+      "source_file": "src/server/SpeedGameServer.server.lua",
+      "source_reference": "Line 934 (win block handler)",
+      "fields_read": [
+        "Wins"
+      ],
+      "fields_modified": [
+        "Wins"
+      ],
+      "validation": {
+        "userId": "Must be valid Roblox user ID",
+        "result": "Wins cannot go below 0 (clamp to 0)"
+      },
+      "derived_values": [],
+      "side_effects": [
+        "Updates leaderstats.Wins",
+        "Fires UpdateUI RemoteEvent to client",
+        "Persists to DataStore2"
+      ],
+      "requires_player_online": true,
+      "security_level": "moderator"
+    },
+    {
+      "action_name": "set_player_speedboost",
+      "description": "Grant or remove SpeedBoost multiplier (x2, x4, x8, x16, etc.)",
+      "required_inputs": {
+        "userId": "number",
+        "newLevel": "number (0 = none, 1 = x2, 2 = x4, 3 = x8, 4 = x16)"
+      },
+      "optional_inputs": {},
+      "roblox_function": "setPlayerSpeedBoost",
+      "roblox_module": "AdminControlFunctions (NEW)",
+      "source_file": "src/server/SpeedGameServer.server.lua",
+      "source_reference": "Lines 499-522 (purchase handler)",
+      "fields_read": [],
+      "fields_modified": [
+        "SpeedBoostLevel",
+        "SpeedBoostActive",
+        "CurrentSpeedBoostMultiplier"
+      ],
+      "validation": {
+        "userId": "Must be valid Roblox user ID",
+        "newLevel": "Must be 0-6 (0-4 have ProductIds configured)"
+      },
+      "derived_values": [
+        "CurrentSpeedBoostMultiplier (2^newLevel)"
+      ],
+      "side_effects": [
+        "Fires UpdateUI RemoteEvent to client",
+        "Updates client UI button text",
+        "Persists to DataStore2"
+      ],
+      "requires_player_online": true,
+      "security_level": "moderator",
+      "notes": "Multiplier formula: 2^level. Configured levels: 0 (1x), 1 (2x), 2 (4x), 3 (8x), 4 (16x)"
+    },
+    {
+      "action_name": "set_player_winsboost",
+      "description": "Grant or remove WinsBoost multiplier (x2, x4, x8, x16, etc.)",
+      "required_inputs": {
+        "userId": "number",
+        "newLevel": "number (0 = none, 1 = x2, 2 = x4, 3 = x8, 4 = x16)"
+      },
+      "optional_inputs": {},
+      "roblox_function": "setPlayerWinBoost",
+      "roblox_module": "AdminControlFunctions (NEW)",
+      "source_file": "src/server/SpeedGameServer.server.lua",
+      "source_reference": "Lines 524-547 (purchase handler)",
+      "fields_read": [],
+      "fields_modified": [
+        "WinBoostLevel",
+        "WinBoostActive",
+        "CurrentWinBoostMultiplier"
+      ],
+      "validation": {
+        "userId": "Must be valid Roblox user ID",
+        "newLevel": "Must be 0-6 (0-4 have ProductIds configured)"
+      },
+      "derived_values": [
+        "CurrentWinBoostMultiplier (2^newLevel)"
+      ],
+      "side_effects": [
+        "Fires UpdateUI RemoteEvent to client",
+        "Updates client UI button text",
+        "Persists to DataStore2"
+      ],
+      "requires_player_online": true,
+      "security_level": "moderator",
+      "notes": "Multiplier formula: 2^level. Configured levels: 0 (1x), 1 (2x), 2 (4x), 3 (8x), 4 (16x)"
+    },
+    {
+      "action_name": "set_treadmill_ownership",
+      "description": "Grant or revoke access to paid treadmill zones",
+      "required_inputs": {
+        "userId": "number",
+        "multiplier": "number (3, 9, or 25)",
+        "owned": "boolean"
+      },
+      "optional_inputs": {},
+      "roblox_function": "setTreadmillOwnership",
+      "roblox_module": "AdminControlFunctions (NEW)",
+      "source_file": "src/server/SpeedGameServer.server.lua",
+      "source_reference": "Lines 584-612 (purchase handler)",
+      "fields_read": [],
+      "fields_modified": [
+        "TreadmillX3Owned (if multiplier = 3)",
+        "TreadmillX9Owned (if multiplier = 9)",
+        "TreadmillX25Owned (if multiplier = 25)"
+      ],
+      "validation": {
+        "userId": "Must be valid Roblox user ID",
+        "multiplier": "Must be 3, 9, or 25",
+        "owned": "Must be boolean"
+      },
+      "derived_values": [],
+      "side_effects": [
+        "Sets player attribute TreadmillXNOwned",
+        "Fires TreadmillOwnershipUpdated RemoteEvent to client",
+        "Updates client ownership cache",
+        "Persists to DataStore2"
+      ],
+      "requires_player_online": true,
+      "security_level": "moderator",
+      "notes": "Free treadmill (x1) does not require ownership. ProductIds: x3=3510639799, x9=3510662188, x25=3510662405"
+    },
+    {
+      "action_name": "get_player_treadmills",
+      "description": "View which treadmills a player owns",
+      "required_inputs": {
+        "userId": "number"
+      },
+      "optional_inputs": {},
+      "roblox_function": "getPlayerTreadmills",
+      "roblox_module": "AdminControlFunctions (NEW)",
+      "source_file": "src/server/SpeedGameServer.server.lua",
+      "source_reference": "Lines 201-216 (getPlayerData)",
+      "fields_read": [
+        "TreadmillX3Owned",
+        "TreadmillX9Owned",
+        "TreadmillX25Owned"
+      ],
+      "fields_modified": [],
+      "validation": {
+        "userId": "Must be valid Roblox user ID"
+      },
+      "derived_values": [],
+      "side_effects": [],
+      "requires_player_online": true,
+      "security_level": "viewer"
+    },
+    {
+      "action_name": "reset_player_state",
+      "description": "Reset player to default values (like new player). Optional: preserve treadmill ownership.",
+      "required_inputs": {
+        "userId": "number"
+      },
+      "optional_inputs": {
+        "preserveTreadmills": "boolean (default: false)"
+      },
+      "roblox_function": "resetPlayerState",
+      "roblox_module": "AdminControlFunctions (NEW)",
+      "source_file": "src/server/SpeedGameServer.server.lua",
+      "source_reference": "Lines 167-181 (DEFAULT_DATA)",
+      "fields_read": [],
+      "fields_modified": [
+        "TotalXP",
+        "Level",
+        "XP",
+        "Wins",
+        "Rebirths",
+        "Multiplier",
+        "StepBonus",
+        "SpeedBoostLevel",
+        "WinBoostLevel",
+        "TreadmillX3Owned (if preserveTreadmills = false)",
+        "TreadmillX9Owned (if preserveTreadmills = false)",
+        "TreadmillX25Owned (if preserveTreadmills = false)"
+      ],
+      "validation": {
+        "userId": "Must be valid Roblox user ID"
+      },
+      "derived_values": [
+        "XPRequired (from Level 1)",
+        "WalkSpeed (16 + 1 = 17)"
+      ],
+      "side_effects": [
+        "Updates leaderstats (Speed, Wins)",
+        "Fires UpdateUI RemoteEvent to client",
+        "Updates character WalkSpeed to 17",
+        "Persists to DataStore2"
+      ],
+      "requires_player_online": true,
+      "security_level": "admin",
+      "notes": "Irreversible action. Does NOT reset GiftClaimed."
+    },
+    {
+      "action_name": "list_online_players",
+      "description": "Get list of all online players with basic stats",
+      "required_inputs": {},
+      "optional_inputs": {
+        "minLevel": "number (filter by level)",
+        "limit": "number (max results, default: 100)"
+      },
+      "roblox_function": "listOnlinePlayers",
+      "roblox_module": "AdminControlFunctions (NEW)",
+      "source_file": "src/server/SpeedGameServer.server.lua",
+      "source_reference": "Line 114 (PlayerData table)",
+      "fields_read": [
+        "All fields (for each online player)"
+      ],
+      "fields_modified": [],
+      "validation": {},
+      "derived_values": [],
+      "side_effects": [],
+      "requires_player_online": false,
+      "security_level": "viewer",
+      "notes": "Returns array of {userId, username, level, totalXP, wins}"
+    },
+    {
+      "action_name": "get_aggregated_stats",
+      "description": "View global statistics (total players, avg level, etc.)",
+      "required_inputs": {},
+      "optional_inputs": {},
+      "roblox_function": "getAggregatedStats",
+      "roblox_module": "AdminControlFunctions (NEW)",
+      "source_file": "src/server/SpeedGameServer.server.lua",
+      "source_reference": "Line 114 (PlayerData table)",
+      "fields_read": [
+        "All fields (for aggregation)"
+      ],
+      "fields_modified": [],
+      "validation": {},
+      "derived_values": [
+        "totalPlayersOnline",
+        "avgLevel",
+        "totalWins",
+        "treadmillOwnershipCounts"
+      ],
+      "side_effects": [],
+      "requires_player_online": false,
+      "security_level": "viewer"
+    }
+  ],
+  "metadata": {
+    "total_actions": 12,
+    "security_levels": {
+      "viewer": "Can view player data only",
+      "moderator": "Can modify player data (except reset/ban)",
+      "admin": "Full access (including reset/ban)"
+    },
+    "integration_method": "MessagingService + HMAC Token Auth (recommended)",
+    "alternative_methods": [
+      "DataStore polling (simpler, higher latency)",
+      "HttpService inbound (not possible directly from Roblox)"
+    ],
+    "datastore_name": "SpeedGameData",
+    "datastore_library": "DataStore2",
+    "progression_formula": "XPRequired(level) = 20000 + 500 * level^1.65",
+    "treadmill_multipliers": {
+      "free": 1,
+      "gold": 3,
+      "blue": 9,
+      "purple": 25
+    },
+    "boost_formula": "multiplier = 2^level"
+  }
+}

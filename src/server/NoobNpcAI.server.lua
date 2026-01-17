@@ -7,15 +7,32 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local NpcKillPlayerEvent = Remotes:WaitForChild("NpcKillPlayer")
 local NpcLaserSlowEffect = Remotes:WaitForChild("NpcLaserSlowEffect")
 
-local noob = workspace:WaitForChild("Buff Noob")
-local humanoid = noob:WaitForChild("Humanoid")
-local hrp = noob:WaitForChild("HumanoidRootPart")
-local head = noob:WaitForChild("Head")
+-- Try to find NPC with timeout
+local noob = workspace:WaitForChild("Buff Noob", 5)
+if not noob then
+	warn("[NoobAI] 'Buff Noob' NPC not found in Workspace. Script disabled.")
+	warn("[NoobAI] Please add 'Buff Noob' NPC to Workspace or disable this script.")
+	return
+end
+
+local humanoid = noob:WaitForChild("Humanoid", 5)
+local hrp = noob:WaitForChild("HumanoidRootPart", 5)
+local head = noob:WaitForChild("Head", 5)
+
+if not humanoid or not hrp or not head then
+	warn("[NoobAI] NPC missing required parts (Humanoid, HumanoidRootPart, or Head). Script disabled.")
+	return
+end
 
 -- =========================
 -- BOUNDS (do BKP - simples!)
 -- =========================
-local stage2Area = workspace:WaitForChild("Stage2NpcKill")
+local stage2Area = workspace:WaitForChild("Stage2NpcKill", 5)
+if not stage2Area then
+	warn("[NoobAI] 'Stage2NpcKill' area not found in Workspace. Script disabled.")
+	warn("[NoobAI] Please add 'Stage2NpcKill' folder to Workspace or disable this script.")
+	return
+end
 
 local minX, maxX = math.huge, -math.huge
 local minZ, maxZ = math.huge, -math.huge

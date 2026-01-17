@@ -112,6 +112,7 @@ local AddWinEvent = getOrCreateRemote("AddWin", "RemoteEvent")
 
 -- ==================== VARIÁVEIS GLOBAIS ====================
 local PlayerData = {}
+local PlayerDataDirty = {} -- 🔧 DEBOUNCE: Track which players need DataStore save
 local TreadmillCooldowns = {} -- Per-player cooldown tracking (UserId -> timestamp)
 local VisualEffectCooldowns = {} -- Per-player cooldown for +XP visual effect (UserId -> timestamp)
 
@@ -385,17 +386,25 @@ end
 Players.PlayerAdded:Connect(onPlayerAdded)
 Players.PlayerRemoving:Connect(onPlayerRemoving)
 
--- ==================== AUTO-SAVE ====================
+-- ==================== AUTO-SAVE (DEBOUNCED) ====================
+-- 🔧 REFACTOR: Only save players marked as dirty (reduces DataStore queue spam)
 task.spawn(function()
 	while true do
-		task.wait(60)
-		for userId, data in pairs(PlayerData) do
-			local player = Players:GetPlayerByUserId(userId)
-			if player then
-				saveAll(player, data, "autosave")
+		task.wait(60)  -- Every 60 seconds
+		local savedCount = 0
+		for userId, isDirty in pairs(PlayerDataDirty) do
+			if isDirty then
+				local player = Players:GetPlayerByUserId(userId)
+				if player and PlayerData[userId] then
+					saveAll(player, PlayerData[userId], "autosave")
+					PlayerDataDirty[userId] = false  -- Clear dirty flag
+					savedCount = savedCount + 1
+				end
 			end
 		end
-		debugPrint("AUTOSAVE", "All player data saved")
+		if savedCount > 0 then
+			debugPrint("AUTOSAVE", savedCount .. " player(s) saved (others clean)")
+		end
 	end
 end)
 
@@ -724,6 +733,7 @@ UpdateSpeedEvent.OnServerEvent:Connect(function(player, steps, clientMultiplier)
 
 	data.XP += xpGain
 	data.TotalXP += xpGain
+	PlayerDataDirty[player.UserId] = true  -- 🔧 Mark as dirty for next autosave
 
 	local oldLevel = data.Level
 	checkLevelUp(data)
@@ -732,6 +742,7 @@ UpdateSpeedEvent.OnServerEvent:Connect(function(player, steps, clientMultiplier)
 		updateWalkSpeed(player, data)
 		debugPrint("LEVEL", player.Name .. " leveled up to " .. data.Level)
 		saveAll(player, data, "level_up")
+		PlayerDataDirty[player.UserId] = false  -- 🔧 Clear dirty flag (just saved)
 	end
 
 	data.SpeedBoostActive = (data.SpeedBoostLevel or 0) > 0
