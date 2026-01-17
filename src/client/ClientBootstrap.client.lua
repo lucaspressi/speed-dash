@@ -607,6 +607,10 @@ UpdateUIEvent.OnClientEvent:Connect(function(data)
 	local oldWins = currentWins
 	currentWins = data.Wins or 0
 
+	if currentWins ~= oldWins then
+		print("[CLIENT] 🏆 Wins updated: " .. oldWins .. " → " .. currentWins)
+	end
+
 	local oldBonus = currentStepBonus
 	currentStepBonus = data.StepBonus or 1
 
@@ -910,17 +914,23 @@ local function connectStepAward(obj)
 		requiredWins = obj:GetAttribute("RequiredLevel") or 0
 	end
 
-	if not bonus then return end
+	if not bonus then
+		warn("[CLIENT] ⚠️ StepAward missing Bonus attribute: " .. obj:GetFullName())
+		return
+	end
 
+	print("[CLIENT] ✅ Connected StepAward: " .. obj.Name .. " (Bonus=" .. bonus .. ", RequiredWins=" .. requiredWins .. ")")
 	table.insert(stepAwardParts, {part = obj, bonus = bonus, requiredWins = requiredWins})
 
 	obj.Touched:Connect(function(hit)
 		local character = player.Character
 		if character and hit:IsDescendantOf(character) and not stepAwardDebounce then
 			stepAwardDebounce = true
+			print("[CLIENT] 🎯 Touched StepAward: " .. obj.Name .. " (Current Wins: " .. currentWins .. ", Required: " .. requiredWins .. ")")
 			if currentWins >= requiredWins then
 				EquipStepAwardEvent:FireServer(bonus)
 				showMessage("EQUIPPED! +" .. bonus .. "/step", Color3.fromRGB(0, 255, 100))
+				print("[CLIENT] ✅ Equipped bonus: " .. bonus)
 			else
 				-- ✅ Formata número de wins com vírgula
 				local function formatWins(num)

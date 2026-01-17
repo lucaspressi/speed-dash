@@ -25,6 +25,9 @@
       "AutoSetupTreadmills": {
         "$path": "src/server/AutoSetupTreadmills.server.lua"
       },
+      "AutoSetupStepAwards": {
+        "$path": "src/server/AutoSetupStepAwards.server.lua"
+      },
       "SpeedGameServer": {
         "$path": "src/server/SpeedGameServer.server.lua"
       },
@@ -184,42 +187,6 @@
             "Transparency": 0.5,
             "CanCollide": false
           }
-        }
-      },
-
-      "WinBlock": {
-        "$className": "Part",
-        "$properties": {
-          "Anchored": true,
-          "Color": [0.2, 1.0, 0.2],
-          "Position": [0, 5, 20],
-          "Size": [5, 10, 5],
-          "Transparency": 0.3,
-          "CanCollide": true
-        }
-      },
-
-      "WinBlock2": {
-        "$className": "Part",
-        "$properties": {
-          "Anchored": true,
-          "Color": [0.2, 1.0, 0.2],
-          "Position": [0, 5, 40],
-          "Size": [5, 10, 5],
-          "Transparency": 0.3,
-          "CanCollide": true
-        }
-      },
-
-      "WinBlock3": {
-        "$className": "Part",
-        "$properties": {
-          "Anchored": true,
-          "Color": [0.2, 1.0, 0.2],
-          "Position": [0, 5, 60],
-          "Size": [5, 10, 5],
-          "Transparency": 0.3,
-          "CanCollide": true
         }
       },
 
