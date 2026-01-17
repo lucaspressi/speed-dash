@@ -16,6 +16,9 @@
       "RemotesBootstrap": {
         "$path": "src/server/RemotesBootstrap.server.lua"
       },
+      "AutoSetupTreadmills": {
+        "$path": "src/server/AutoSetupTreadmills.server.lua"
+      },
       "SpeedGameServer": {
         "$path": "src/server/SpeedGameServer.server.lua"
       },
@@ -106,6 +109,100 @@
             20,
             512
           ]
+        }
+      },
+
+      "TreadmillFree": {
+        "$className": "Model",
+        "TreadmillZone": {
+          "$className": "Part",
+          "$properties": {
+            "Anchored": true,
+            "Color": [0.5, 0.5, 0.5],
+            "Position": [10, 0, 0],
+            "Size": [10, 1, 10],
+            "Transparency": 0.5,
+            "CanCollide": false
+          }
+        }
+      },
+
+      "TreadmillBlue": {
+        "$className": "Model",
+        "TreadmillZone": {
+          "$className": "Part",
+          "$properties": {
+            "Anchored": true,
+            "Color": [0.2, 0.4, 1.0],
+            "Position": [30, 0, 0],
+            "Size": [10, 1, 10],
+            "Transparency": 0.5,
+            "CanCollide": false
+          }
+        }
+      },
+
+      "TreadmillPurple": {
+        "$className": "Model",
+        "TreadmillZone": {
+          "$className": "Part",
+          "$properties": {
+            "Anchored": true,
+            "Color": [0.8, 0.2, 0.8],
+            "Position": [50, 0, 0],
+            "Size": [10, 1, 10],
+            "Transparency": 0.5,
+            "CanCollide": false
+          }
+        }
+      },
+
+      "WinBlock": {
+        "$className": "Part",
+        "$properties": {
+          "Anchored": true,
+          "Color": [0.2, 1.0, 0.2],
+          "Position": [0, 5, 20],
+          "Size": [5, 10, 5],
+          "Transparency": 0.3,
+          "CanCollide": true
+        }
+      },
+
+      "WinBlock2": {
+        "$className": "Part",
+        "$properties": {
+          "Anchored": true,
+          "Color": [0.2, 1.0, 0.2],
+          "Position": [0, 5, 40],
+          "Size": [5, 10, 5],
+          "Transparency": 0.3,
+          "CanCollide": true
+        }
+      },
+
+      "WinBlock3": {
+        "$className": "Part",
+        "$properties": {
+          "Anchored": true,
+          "Color": [0.2, 1.0, 0.2],
+          "Position": [0, 5, 60],
+          "Size": [5, 10, 5],
+          "Transparency": 0.3,
+          "CanCollide": true
+        }
+      },
+
+      "SpawnLocation": {
+        "$className": "SpawnLocation",
+        "$properties": {
+          "Anchored": true,
+          "Position": [0, 1, 0],
+          "Size": [6, 1, 6],
+          "Transparency": 0,
+          "CanCollide": true,
+          "Duration": 0,
+          "Neutral": true
         }
       }
     },
