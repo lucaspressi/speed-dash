@@ -25,14 +25,29 @@ end
 
 print("🔍 Found player: " .. player.Name .. " (UserId: " .. player.UserId .. ")")
 
+-- Wait for SpeedGameServer to load (with timeout)
+print("⏳ Waiting for SpeedGameServer to load...")
+local maxWaitTime = 10 -- seconds
+local waitedTime = 0
+local checkInterval = 0.5
+
+while (not _G.SpeedGame_PlayerData or not _G.SpeedGame_DEFAULT_DATA) and waitedTime < maxWaitTime do
+    task.wait(checkInterval)
+    waitedTime = waitedTime + checkInterval
+    print("   Still waiting... (" .. waitedTime .. "s)")
+end
+
 -- Access global PlayerData (exposed by SpeedGameServer)
 local PlayerData = _G.SpeedGame_PlayerData
 local DEFAULT_DATA = _G.SpeedGame_DEFAULT_DATA
 
 if not PlayerData or not DEFAULT_DATA then
-    warn("❌ SpeedGameServer not loaded yet! Make sure the game is running (F5)")
+    warn("❌ SpeedGameServer not loaded after " .. maxWaitTime .. " seconds!")
+    warn("❌ Make sure the game is running (F5) and try again.")
     return
 end
+
+print("✅ SpeedGameServer loaded!")
 
 local data = PlayerData[player.UserId]
 if not data then
