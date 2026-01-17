@@ -189,6 +189,31 @@ collectSound.SoundId = "rbxassetid://1289263994"
 collectSound.Volume = 0.5
 collectSound.Parent = soundFolder
 
+-- 🎵 MÚSICA DE FUNDO
+local backgroundMusic = Instance.new("Sound")
+backgroundMusic.Name = "BackgroundMusic"
+backgroundMusic.SoundId = "rbxassetid://1837879082"  -- Música calma/chill
+backgroundMusic.Volume = 0.3  -- Volume moderado para não ser intrusivo
+backgroundMusic.Looped = true  -- Loop infinito
+backgroundMusic.Parent = soundFolder
+backgroundMusic:Play()  -- Inicia automaticamente
+print("[CLIENT] Background music started!")
+
+-- 💀 SOM DE MORTE PELO NPC (MEME BRAINROT)
+local npcKillSound = Instance.new("Sound")
+npcKillSound.Name = "NpcKill"
+npcKillSound.SoundId = "rbxassetid://6308706396"  -- Vine Boom (meme)
+npcKillSound.Volume = 1
+npcKillSound.Parent = soundFolder
+
+-- 💀 OUTROS SONS DE MEME DISPONÍVEIS:
+-- Skull emoji (tuntuntun): rbxassetid://12221967
+-- Bruh: rbxassetid://4275842574
+-- Metal Pipe: rbxassetid://8436226966
+-- Windows Error: rbxassetid://160715357
+-- Emotional Damage: rbxassetid://8578656799
+-- Oof: rbxassetid://6955867
+
 -- ✅ FUNÇÃO PARA CALCULAR MULTIPLICADOR
 local function getSpeedBoostMultiplier(level)
 	if level <= 0 then return 1 end
@@ -993,6 +1018,88 @@ task.delay(1, updateEquippedText)
 local RebirthSuccessEvent = Remotes:WaitForChild("RebirthSuccess")
 RebirthSuccessEvent.OnClientEvent:Connect(function()
 	rebirthSound:Play()
+end)
+
+-- 💀 SOM QUANDO NPC MATA O PLAYER
+local NpcKillPlayerEvent = Remotes:WaitForChild("NpcKillPlayer")
+NpcKillPlayerEvent.OnClientEvent:Connect(function()
+	print("[CLIENT] NPC killed player - playing death sound!")
+	npcKillSound:Play()
+end)
+
+-- 🎨 EFEITO VISUAL QUANDO LASER DEIXA PLAYER LENTO
+local NpcLaserSlowEffect = Remotes:WaitForChild("NpcLaserSlowEffect")
+NpcLaserSlowEffect.OnClientEvent:Connect(function(duration)
+	print("[CLIENT] Laser slow effect triggered!")
+
+	local character = player.Character
+	if not character then return end
+
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	-- 🔴 Cria partículas vermelhas ao redor do player
+	local particles = Instance.new("ParticleEmitter")
+	particles.Name = "LaserSlowParticles"
+	particles.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	particles.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
+	particles.Size = NumberSequence.new(1, 0)
+	particles.Transparency = NumberSequence.new(0.3, 1)
+	particles.Lifetime = NumberRange.new(0.5, 0.8)
+	particles.Rate = 50
+	particles.Speed = NumberRange.new(2, 4)
+	particles.SpreadAngle = Vector2.new(180, 180)
+	particles.Parent = hrp
+
+	-- 🔴 Efeito de brilho vermelho
+	local redLight = Instance.new("PointLight")
+	redLight.Name = "LaserSlowLight"
+	redLight.Color = Color3.fromRGB(255, 0, 0)
+	redLight.Brightness = 3
+	redLight.Range = 10
+	redLight.Parent = hrp
+
+	-- 🔴 Muda cor das partes do character temporariamente
+	local originalColors = {}
+	for _, part in pairs(character:GetDescendants()) do
+		if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+			originalColors[part] = {
+				Color = part.Color,
+				Material = part.Material
+			}
+			part.Color = Color3.fromRGB(255, 100, 100)  -- Vermelho claro
+			part.Material = Enum.Material.Neon
+		end
+	end
+
+	-- 🎵 Som de slow (opcional - descomente se quiser)
+	-- local slowSound = Instance.new("Sound")
+	-- slowSound.SoundId = "rbxassetid://9125402735"  -- Som de slow
+	-- slowSound.Volume = 0.5
+	-- slowSound.Parent = hrp
+	-- slowSound:Play()
+
+	-- ⏱️ Remove efeitos após a duração
+	task.delay(duration, function()
+		if particles and particles.Parent then
+			particles.Enabled = false
+			task.delay(1, function() particles:Destroy() end)
+		end
+
+		if redLight and redLight.Parent then
+			redLight:Destroy()
+		end
+
+		-- Restaura cores originais
+		for part, data in pairs(originalColors) do
+			if part and part.Parent then
+				part.Color = data.Color
+				part.Material = data.Material
+			end
+		end
+
+		print("[CLIENT] Laser slow effect ended!")
+	end)
 end)
 
 print("Client ready - sounds fixed for respawn")

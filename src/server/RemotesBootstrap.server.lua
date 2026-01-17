@@ -57,6 +57,10 @@ local remoteEvents = {
 
 	-- Visual feedback
 	"ShowWin",
+
+	-- NPC Events
+	"NpcKillPlayer",
+	"NpcLaserSlowEffect",
 }
 
 local remoteFunctions = {
