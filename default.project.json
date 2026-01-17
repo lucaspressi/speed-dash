@@ -70,6 +70,9 @@
           "Disabled": true
         }
       },
+      "AdminCommandListener": {
+        "$path": "src/server/AdminCommandListener.server.lua"
+      },
 
       "Modules": {
         "$className": "Folder",
@@ -78,6 +81,15 @@
         },
         "TreadmillRegistry": {
           "$path": "src/server/modules/TreadmillRegistry.lua"
+        },
+        "AdminSecurity": {
+          "$path": "src/server/modules/AdminSecurity.lua"
+        },
+        "AdminConfig": {
+          "$path": "src/server/modules/AdminConfig.lua"
+        },
+        "AdminControlFunctions": {
+          "$path": "src/server/modules/AdminControlFunctions.lua"
         }
       },
 

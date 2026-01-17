@@ -241,7 +241,7 @@ print("[CLIENT] ✅ CHECKPOINT 2: Basic sounds created (levelUp, rebirth, collec
 local backgroundMusic = Instance.new("Sound")
 backgroundMusic.Name = "BackgroundMusic"
 backgroundMusic.SoundId = "rbxassetid://1837879082"  -- Música calma/chill
-backgroundMusic.Volume = 0.3  -- Volume moderado para não ser intrusivo
+backgroundMusic.Volume = 0  -- MUDO
 backgroundMusic.Looped = true  -- Loop infinito
 backgroundMusic.Parent = soundFolder
 print("[CLIENT] 🎵 Background music created: " .. backgroundMusic.SoundId)

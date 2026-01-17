@@ -75,7 +75,8 @@ DataStore2.Combine(
 	"TotalXP", "Level", "XP", "Wins", "Rebirths",
 	"Multiplier", "StepBonus", "GiftClaimed",
 	"TreadmillX3Owned", "TreadmillX9Owned", "TreadmillX25Owned",
-	"SpeedBoostLevel", "WinBoostLevel"
+	"SpeedBoostLevel", "WinBoostLevel",
+	"Restricted", "RestrictionReason"
 )
 
 -- ==================== REMOTES ====================
@@ -179,6 +180,8 @@ local DEFAULT_DATA = {
 	TreadmillX25Owned = false,
 	SpeedBoostLevel = 0,
 	WinBoostLevel = 0,
+	Restricted = false,
+	RestrictionReason = nil,
 }
 
 local function getStores(player)
@@ -196,15 +199,29 @@ local function getStores(player)
 		TreadmillX25Owned = DataStore2("TreadmillX25Owned", player),
 		SpeedBoostLevel = DataStore2("SpeedBoostLevel", player),
 		WinBoostLevel = DataStore2("WinBoostLevel", player),
+		Restricted = DataStore2("Restricted", player),
+		RestrictionReason = DataStore2("RestrictionReason", player),
 	}
 end
 
 local function getPlayerData(player)
-	local stores = getStores(player)
-
 	local data = {}
-	for key, store in pairs(stores) do
-		data[key] = store:Get(DEFAULT_DATA[key])
+
+	-- Try to load from DataStore2, fallback to defaults if it fails (Studio without API access)
+	local success, err = pcall(function()
+		local stores = getStores(player)
+		for key, store in pairs(stores) do
+			data[key] = store:Get(DEFAULT_DATA[key])
+		end
+	end)
+
+	if not success then
+		warn("[DATA] DataStore2 failed for " .. player.Name .. ": " .. tostring(err))
+		warn("[DATA] Using default data (Studio Play Solo mode)")
+		-- Use default data
+		for key, value in pairs(DEFAULT_DATA) do
+			data[key] = value
+		end
 	end
 
 	data.XPRequired = getXPForLevel(data.Level)
@@ -283,87 +300,102 @@ end
 local function onPlayerAdded(player)
 	debugPrint("PLAYER JOIN", player.Name .. " joining...")
 
-	local data = getPlayerData(player)
-	PlayerData[player.UserId] = data
+	local success, err = pcall(function()
+		local data = getPlayerData(player)
+		PlayerData[player.UserId] = data
 
-	-- ✅ ALWAYS set treadmill ownership attributes (even if false, so client can check)
-	player:SetAttribute("TreadmillX3Owned", data.TreadmillX3Owned == true)
-	player:SetAttribute("TreadmillX9Owned", data.TreadmillX9Owned == true)
-	player:SetAttribute("TreadmillX25Owned", data.TreadmillX25Owned == true)
+		-- ✅ ALWAYS set treadmill ownership attributes (even if false, so client can check)
+		player:SetAttribute("TreadmillX3Owned", data.TreadmillX3Owned == true)
+		player:SetAttribute("TreadmillX9Owned", data.TreadmillX9Owned == true)
+		player:SetAttribute("TreadmillX25Owned", data.TreadmillX25Owned == true)
 
-	debugPrint("TREADMILL", player.Name .. " ownership attributes set:")
-	debugPrint("TREADMILL", "  x3: " .. tostring(data.TreadmillX3Owned == true))
-	debugPrint("TREADMILL", "  x9: " .. tostring(data.TreadmillX9Owned == true))
-	debugPrint("TREADMILL", "  x25: " .. tostring(data.TreadmillX25Owned == true))
+		debugPrint("TREADMILL", player.Name .. " ownership attributes set:")
+		debugPrint("TREADMILL", "  x3: " .. tostring(data.TreadmillX3Owned == true))
+		debugPrint("TREADMILL", "  x9: " .. tostring(data.TreadmillX9Owned == true))
+		debugPrint("TREADMILL", "  x25: " .. tostring(data.TreadmillX25Owned == true))
 
-	-- ✅ ENVIA SNAPSHOT COMPLETO DE OWNERSHIP AO CLIENT (evita race condition)
-	local ownershipSnapshot = {
-		[3] = data.TreadmillX3Owned or false,
-		[9] = data.TreadmillX9Owned or false,
-		[25] = data.TreadmillX25Owned or false,
-	}
-	debugPrint("TREADMILL", "Sending ownership snapshot to " .. player.Name .. ":")
-	debugPrint("TREADMILL", "  x3: " .. tostring(ownershipSnapshot[3]))
-	debugPrint("TREADMILL", "  x9: " .. tostring(ownershipSnapshot[9]))
-	debugPrint("TREADMILL", "  x25: " .. tostring(ownershipSnapshot[25]))
+		-- ✅ ENVIA SNAPSHOT COMPLETO DE OWNERSHIP AO CLIENT (evita race condition)
+		local ownershipSnapshot = {
+			[3] = data.TreadmillX3Owned or false,
+			[9] = data.TreadmillX9Owned or false,
+			[25] = data.TreadmillX25Owned or false,
+		}
+		debugPrint("TREADMILL", "Sending ownership snapshot to " .. player.Name .. ":")
+		debugPrint("TREADMILL", "  x3: " .. tostring(ownershipSnapshot[3]))
+		debugPrint("TREADMILL", "  x9: " .. tostring(ownershipSnapshot[9]))
+		debugPrint("TREADMILL", "  x25: " .. tostring(ownershipSnapshot[25]))
 
-	-- Envia após um pequeno delay para garantir que o client já conectou o listener
-	task.delay(0.5, function()
-		TreadmillOwnershipUpdated:FireClient(player, ownershipSnapshot)
-		debugPrint("TREADMILL", "Ownership snapshot sent to " .. player.Name)
-	end)
-
-	player:SetAttribute("OnTreadmill", false)
-	player:SetAttribute("TreadmillMultiplier", 1)
-
-	debugPrint("DATA", player.Name .. " loaded:")
-	debugPrint("DATA", "  Level: " .. data.Level)
-	debugPrint("DATA", "  TotalXP: " .. data.TotalXP)
-	debugPrint("DATA", "  Wins: " .. data.Wins)
-	debugPrint("DATA", "  SpeedBoostLevel: " .. (data.SpeedBoostLevel or 0) .. " (" .. getSpeedBoostMultiplier(data.SpeedBoostLevel or 0) .. "x)")
-	debugPrint("DATA", "  WinBoostLevel: " .. (data.WinBoostLevel or 0) .. " (" .. getWinBoostMultiplier(data.WinBoostLevel or 0) .. "x)")
-	debugPrint("DATA", "  Treadmill x3: " .. tostring(data.TreadmillX3Owned))
-	debugPrint("DATA", "  Treadmill x9: " .. tostring(data.TreadmillX9Owned))
-	debugPrint("DATA", "  Treadmill x25: " .. tostring(data.TreadmillX25Owned))
-
-	-- Award welcome badge (não tenta se id=0)
-	if WELCOME_BADGE_ID and WELCOME_BADGE_ID ~= 0 then
-		task.spawn(function()
-			pcall(function()
-				BadgeService:AwardBadge(player.UserId, WELCOME_BADGE_ID)
-			end)
+		-- Envia após um pequeno delay para garantir que o client já conectou o listener
+		task.delay(0.5, function()
+			TreadmillOwnershipUpdated:FireClient(player, ownershipSnapshot)
+			debugPrint("TREADMILL", "Ownership snapshot sent to " .. player.Name)
 		end)
-	end
 
-	-- Create leaderstats
-	local leaderstats = Instance.new("Folder")
-	leaderstats.Name = "leaderstats"
-	leaderstats.Parent = player
+		player:SetAttribute("OnTreadmill", false)
+		player:SetAttribute("TreadmillMultiplier", 1)
 
-	local speedStat = Instance.new("IntValue")
-	speedStat.Name = "Speed"
-	speedStat.Value = data.TotalXP
-	speedStat.Parent = leaderstats
+		debugPrint("DATA", player.Name .. " loaded:")
+		debugPrint("DATA", "  Level: " .. data.Level)
+		debugPrint("DATA", "  TotalXP: " .. data.TotalXP)
+		debugPrint("DATA", "  Wins: " .. data.Wins)
+		debugPrint("DATA", "  SpeedBoostLevel: " .. (data.SpeedBoostLevel or 0) .. " (" .. getSpeedBoostMultiplier(data.SpeedBoostLevel or 0) .. "x)")
+		debugPrint("DATA", "  WinBoostLevel: " .. (data.WinBoostLevel or 0) .. " (" .. getWinBoostMultiplier(data.WinBoostLevel or 0) .. "x)")
+		debugPrint("DATA", "  Treadmill x3: " .. tostring(data.TreadmillX3Owned))
+		debugPrint("DATA", "  Treadmill x9: " .. tostring(data.TreadmillX9Owned))
+		debugPrint("DATA", "  Treadmill x25: " .. tostring(data.TreadmillX25Owned))
 
-	local winsStat = Instance.new("IntValue")
-	winsStat.Name = "Wins"
-	winsStat.Value = data.Wins
-	winsStat.Parent = leaderstats
-
-	player.CharacterAdded:Connect(function(character)
-		local humanoid = character:WaitForChild("Humanoid")
-		local pData = PlayerData[player.UserId]
-		if pData then
-			humanoid.WalkSpeed = 16 + math.min(pData.Level, 500)
-			task.wait(0.5)
-			UpdateUIEvent:FireClient(player, pData)
+		-- Award welcome badge (não tenta se id=0)
+		if WELCOME_BADGE_ID and WELCOME_BADGE_ID ~= 0 then
+			task.spawn(function()
+				pcall(function()
+					BadgeService:AwardBadge(player.UserId, WELCOME_BADGE_ID)
+				end)
+			end)
 		end
+
+		-- Create leaderstats
+		local leaderstats = Instance.new("Folder")
+		leaderstats.Name = "leaderstats"
+		leaderstats.Parent = player
+
+		local speedStat = Instance.new("IntValue")
+		speedStat.Name = "Speed"
+		speedStat.Value = data.TotalXP
+		speedStat.Parent = leaderstats
+
+		local winsStat = Instance.new("IntValue")
+		winsStat.Name = "Wins"
+		winsStat.Value = data.Wins
+		winsStat.Parent = leaderstats
+
+		-- ✅ Send initial UI update after a small delay to ensure client is ready
+		task.delay(0.5, function()
+			if PlayerData[player.UserId] then
+				UpdateUIEvent:FireClient(player, PlayerData[player.UserId])
+				debugPrint("UI", "Initial UI update sent to " .. player.Name)
+			end
+		end)
+
+		player.CharacterAdded:Connect(function(character)
+			local humanoid = character:WaitForChild("Humanoid")
+			local pData = PlayerData[player.UserId]
+			if pData then
+				humanoid.WalkSpeed = 16 + math.min(pData.Level, 500)
+				task.wait(0.5)
+				UpdateUIEvent:FireClient(player, pData)
+			end
+		end)
+
+		-- 🔥 opcional: salva logo ao entrar (ajuda a "fixar" user key em testes)
+		saveAll(player, data, "player_join")
+
+		debugPrint("PLAYER JOIN", player.Name .. " setup complete!")
 	end)
 
-	-- 🔥 opcional: salva logo ao entrar (ajuda a “fixar” user key em testes)
-	saveAll(player, data, "player_join")
-
-	debugPrint("PLAYER JOIN", player.Name .. " setup complete!")
+	if not success then
+		warn("[PLAYER JOIN ERROR] " .. player.Name .. " failed to join: " .. tostring(err))
+		warn("[PLAYER JOIN ERROR] Stack trace:", debug.traceback())
+	end
 end
 
 local function onPlayerRemoving(player)
@@ -648,6 +680,11 @@ UpdateSpeedEvent.OnServerEvent:Connect(function(player, steps, clientMultiplier)
 	local data = PlayerData[player.UserId]
 	if not data then return end
 
+	-- ✅ RESTRICTION CHECK: Block restricted players from gaining XP
+	if data.Restricted then
+		return
+	end
+
 	steps = steps or 1
 	clientMultiplier = clientMultiplier or nil  -- nil = novo protocolo, não enviou
 
@@ -779,6 +816,12 @@ end)
 EquipStepAwardEvent.OnServerEvent:Connect(function(player, bonus)
 	local data = PlayerData[player.UserId]
 	if not data then return end
+
+	-- ✅ RESTRICTION CHECK: Block restricted players
+	if data.Restricted then
+		return
+	end
+
 	data.StepBonus = bonus
 	debugPrint("EQUIP", player.Name .. " equipped +" .. bonus .. " step bonus")
 	UpdateUIEvent:FireClient(player, data)
@@ -788,6 +831,11 @@ end)
 RebirthEvent.OnServerEvent:Connect(function(player)
 	local data = PlayerData[player.UserId]
 	if not data then return end
+
+	-- ✅ RESTRICTION CHECK: Block restricted players
+	if data.Restricted then
+		return
+	end
 
 	local nextTierIndex = data.Rebirths + 1
 	if nextTierIndex > #rebirthTiers then return end
@@ -936,6 +984,11 @@ for _, winBlock in ipairs(winBlocks) do
 		if humanoid and hrp and humanoid.Health > 0 then
 			local d = PlayerData[player.UserId]
 			if d then
+				-- ✅ RESTRICTION CHECK: Block restricted players from winning
+				if d.Restricted then
+					return
+				end
+
 				local winAmount = winAmounts[winBlock.Name] or 1
 
 				-- ✅ Aplica Win Boost Multiplier (x2, x4, x8, x16...)
@@ -967,5 +1020,33 @@ for _, player in ipairs(Players:GetPlayers()) do
 		onPlayerAdded(player)
 	end)
 end
+
+-- ==================== ADMIN API EXPORT ====================
+-- Expose safe API for AdminControlFunctions module
+_G.AdminAPI = {
+	-- Data access
+	getPlayerData = function(userId)
+		return PlayerData[userId]
+	end,
+
+	-- Save functions
+	saveAll = saveAll,
+	savePlayerData = savePlayerData,
+
+	-- UI/sync functions
+	updateLeaderstats = updateLeaderstats,
+	updateUI = function(player, data)
+		UpdateUIEvent:FireClient(player, data)
+	end,
+	updateWalkSpeed = updateWalkSpeed,
+
+	-- Helper functions
+	checkLevelUp = checkLevelUp,
+	getXPForLevel = getXPForLevel,
+	getSpeedBoostMultiplier = getSpeedBoostMultiplier,
+	getWinBoostMultiplier = getWinBoostMultiplier,
+}
+
+debugPrint("INIT", "✅ AdminAPI exposed for admin dashboard integration")
 
 debugPrint("INIT", "✅ Server ready with DataStore2, Dev Products, Badges, and Speed Boost System!")

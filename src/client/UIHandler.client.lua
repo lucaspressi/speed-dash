@@ -113,6 +113,9 @@ for _, child in pairs(speedGameUI:GetDescendants()) do
 	end
 end
 
+-- Find BoostFrame first
+local boostFrame = speedGameUI:FindFirstChild("BoostFrame")
+
 for _, child in pairs(speedGameUI:GetDescendants()) do
 	if child.Name == "RebirthButton" and child:IsA("TextButton") then
 		rebirthButton = child
@@ -132,21 +135,34 @@ for _, child in pairs(speedGameUI:GetDescendants()) do
 		print("[UIHandler]   → Type: " .. child.ClassName)
 		print("[UIHandler]   → Active: " .. tostring(child.Active))
 		print("[UIHandler]   → Visible: " .. tostring(child.Visible))
-	elseif child.Name == "Boost1" and (child:IsA("TextButton") or child:IsA("ImageButton")) then
-		boost1Button = child
-		print("[UIHandler] ✅ Found Boost1")
-	elseif child.Name == "Boost2" and (child:IsA("TextButton") or child:IsA("ImageButton")) then
-		boost2Button = child
-		print("[UIHandler] ✅ Found Boost2")
-	elseif child.Name == "Boost3" and (child:IsA("TextButton") or child:IsA("ImageButton")) then
-		boost3Button = child
-		print("[UIHandler] ✅ Found Boost3")
 	end
+end
+
+-- Get boost buttons directly from BoostFrame to avoid duplicates
+if boostFrame then
+	print("[UIHandler] 🔍 Searching for boost buttons in BoostFrame...")
+	for _, child in pairs(boostFrame:GetChildren()) do
+		if child.Name == "Boost1" and (child:IsA("TextButton") or child:IsA("ImageButton")) and not boost1Button then
+			boost1Button = child
+			print("[UIHandler] ✅ Found Boost1 at " .. child:GetFullName())
+		elseif child.Name == "Boost2" and (child:IsA("TextButton") or child:IsA("ImageButton")) and not boost2Button then
+			boost2Button = child
+			print("[UIHandler] ✅ Found Boost2 at " .. child:GetFullName())
+		elseif child.Name == "Boost3" and (child:IsA("TextButton") or child:IsA("ImageButton")) and not boost3Button then
+			boost3Button = child
+			print("[UIHandler] ✅ Found Boost3 at " .. child:GetFullName())
+		end
+	end
+else
+	warn("[UIHandler] ⚠️ BoostFrame not found! Boost buttons will not work.")
 end
 
 print("[UIHandler] ====== Button Detection Summary ======")
 print("[UIHandler] Speed Boost Button (gamepassButton): " .. tostring(gamepassButton ~= nil))
 print("[UIHandler] Wins Boost Button (gamepassButton2): " .. tostring(gamepassButton2 ~= nil))
+print("[UIHandler] Boost1 (100K): " .. tostring(boost1Button ~= nil))
+print("[UIHandler] Boost2 (1M): " .. tostring(boost2Button ~= nil))
+print("[UIHandler] Boost3 (10M): " .. tostring(boost3Button ~= nil))
 print("[UIHandler] =======================================")
 
 local currentData = {Level = 1, XP = 0, XPRequired = 100, TotalXP = 0, Wins = 0, Rebirths = 0, Multiplier = 1}
@@ -521,20 +537,32 @@ end
 
 if boost1Button then
 	boost1Button.MouseButton1Click:Connect(function()
+		print("[UIHandler] 🎯 Boost1 (100K) clicked!")
 		Prompt100KSpeedEvent:FireServer()
 	end)
+	print("[UIHandler] ✅ Boost1 (100K) handler connected")
+else
+	warn("[UIHandler] ❌ Boost1 (100K) button NOT FOUND in BoostFrame!")
 end
 
 if boost2Button then
 	boost2Button.MouseButton1Click:Connect(function()
+		print("[UIHandler] 🎯 Boost2 (1M) clicked!")
 		Prompt1MSpeedEvent:FireServer()
 	end)
+	print("[UIHandler] ✅ Boost2 (1M) handler connected")
+else
+	warn("[UIHandler] ❌ Boost2 (1M) button NOT FOUND in BoostFrame!")
 end
 
 if boost3Button then
 	boost3Button.MouseButton1Click:Connect(function()
+		print("[UIHandler] 🎯 Boost3 (10M) clicked!")
 		Prompt10MSpeedEvent:FireServer()
 	end)
+	print("[UIHandler] ✅ Boost3 (10M) handler connected")
+else
+	warn("[UIHandler] ❌ Boost3 (10M) button NOT FOUND in BoostFrame!")
 end
 
 print("UIHandler ready with win notifications!")
