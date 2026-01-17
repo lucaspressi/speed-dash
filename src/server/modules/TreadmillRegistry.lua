@@ -165,6 +165,7 @@ function TreadmillRegistry.scanAndRegister()
 	-- ✅ Summary warning if many invalid zones (legacy zones without proper config)
 	if invalidCount > 3 then
 		warn("[TreadmillRegistry] ⚠️ Found " .. invalidCount .. " invalid zones (first 3 logged above). These are likely legacy zones missing ProductId or Multiplier Attributes. Run TreadmillSetup to migrate them.")
+	end
 
 	isInitialized = true
 

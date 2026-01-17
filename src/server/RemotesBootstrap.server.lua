@@ -52,8 +52,7 @@ local remoteEvents = {
 	"Prompt1MSpeed",
 	"Prompt10MSpeed",
 
-	-- Group/Gift
-	"VerifyGroup",
+	-- Gift
 	"ClaimGift",
 
 	-- Visual feedback
@@ -61,8 +60,8 @@ local remoteEvents = {
 }
 
 local remoteFunctions = {
-	-- Se houver RemoteFunctions, adicionar aqui
-	-- Ex: "GetPlayerData"
+	-- Group verification (returns boolean)
+	"VerifyGroup",
 }
 
 -- ==================== CREATE REMOTE EVENTS ====================

@@ -84,7 +84,8 @@ print("[UIHandler] 🔍 Searching for buttons in SpeedGameUI...")
 print("[UIHandler] 📋 All descendants:")
 for _, child in pairs(speedGameUI:GetDescendants()) do
 	if child:IsA("TextButton") or child:IsA("ImageButton") then
-		print("[UIHandler]   → " .. child.Name .. " (" .. child.ClassName .. ") at " .. child:GetFullName())
+		-- ✅ Added tostring() protection to prevent table concatenation errors
+		print("[UIHandler]   → " .. tostring(child.Name) .. " (" .. tostring(child.ClassName) .. ") at " .. tostring(child:GetFullName()))
 	end
 end
 
