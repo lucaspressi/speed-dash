@@ -7,6 +7,7 @@ local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 print("[CLIENT] LocalScript.lua loaded! Player: " .. player.Name)
+print("[CLIENT] ✅ CHECKPOINT 1: Services and player loaded")
 local playerGui = player:WaitForChild("PlayerGui")
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local PromptSpeedBoostEvent = Remotes:FindFirstChild("PromptSpeedBoost")
@@ -188,6 +189,8 @@ collectSound.Name = "Collect"
 collectSound.SoundId = "rbxassetid://1289263994"
 collectSound.Volume = 0.5
 collectSound.Parent = soundFolder
+
+print("[CLIENT] ✅ CHECKPOINT 2: Basic sounds created (levelUp, rebirth, collect)")
 
 -- 🎵 MÚSICA DE FUNDO
 local backgroundMusic = Instance.new("Sound")
