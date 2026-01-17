@@ -175,6 +175,7 @@ RunService.Heartbeat:Connect(function(deltaTime)
 end)
 
 -- ==================== QUERY API ====================
+local TreadmillService = {}
 
 -- Retorna multiplier atual do player (usado por SpeedGameServer)
 function TreadmillService.getPlayerMultiplier(player)

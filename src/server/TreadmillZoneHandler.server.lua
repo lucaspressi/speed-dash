@@ -2,6 +2,13 @@
 -- Script que deve ser anexado a cada TreadmillZone Part
 -- Valida configuração e prevê inicialização duplicada
 
+-- ==================== EARLY SAFETY CHECK ====================
+-- Se este script não está dentro de uma BasePart, não faz nada
+-- (evita rodar no ServerScriptService por engano)
+if not script.Parent or not script.Parent:IsA("BasePart") then
+	return  -- Silenciosamente retorna
+end
+
 local ServerScriptService = game:GetService("ServerScriptService")
 
 -- Debug flag (pode ser desligado)

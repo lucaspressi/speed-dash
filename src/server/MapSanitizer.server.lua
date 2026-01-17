@@ -61,12 +61,34 @@ for i, zone in ipairs(allTreadmillZones) do
 		end
 	end
 
-	-- Verifica Attributes
+	-- Verifica Attributes (ou fallback para IntValues legados)
 	local multiplier = zone:GetAttribute("Multiplier")
 	local isFree = zone:GetAttribute("IsFree")
 	local productId = zone:GetAttribute("ProductId")
 
-	print("  Attributes:")
+	-- Fallback para IntValues legados se Attributes não existirem
+	if not multiplier then
+		local multiplierValue = zone:FindFirstChild("Multiplier")
+		if multiplierValue and multiplierValue:IsA("IntValue") then
+			multiplier = multiplierValue.Value
+		end
+	end
+
+	if isFree == nil then
+		local isFreeValue = zone:FindFirstChild("IsFree")
+		if isFreeValue and isFreeValue:IsA("BoolValue") then
+			isFree = isFreeValue.Value
+		end
+	end
+
+	if not productId then
+		local productIdValue = zone:FindFirstChild("ProductId")
+		if productIdValue and productIdValue:IsA("IntValue") then
+			productId = productIdValue.Value
+		end
+	end
+
+	print("  Attributes/Values:")
 	print("    Multiplier: " .. tostring(multiplier))
 	print("    IsFree: " .. tostring(isFree))
 	print("    ProductId: " .. tostring(productId))

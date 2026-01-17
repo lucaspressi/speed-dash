@@ -37,10 +37,16 @@ if winsBoardModel then
     end
 end
 
-print("Speed GUI found: " .. tostring(speedSurfaceGui ~= nil))
-print("Wins GUI found: " .. tostring(winsSurfaceGui ~= nil))
-print("Speed Timer found: " .. tostring(speedTimerLabel ~= nil))
-print("Wins Timer found: " .. tostring(winsTimerLabel ~= nil))
+print("[LeaderboardUpdater] Speed GUI found: " .. tostring(speedSurfaceGui ~= nil))
+print("[LeaderboardUpdater] Wins GUI found: " .. tostring(winsSurfaceGui ~= nil))
+print("[LeaderboardUpdater] Speed Timer found: " .. tostring(speedTimerLabel ~= nil))
+print("[LeaderboardUpdater] Wins Timer found: " .. tostring(winsTimerLabel ~= nil))
+
+-- Early return if no leaderboard GUIs exist in the map
+if not speedSurfaceGui and not winsSurfaceGui then
+	print("[LeaderboardUpdater] No leaderboard displays found in workspace. Leaderboard updates disabled.")
+	return
+end
 
 -- Format large numbers with abbreviations
 local function formatNumber(num)
