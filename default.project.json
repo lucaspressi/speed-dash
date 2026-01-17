@@ -28,6 +28,9 @@
       "TreadmillSetup": {
         "$path": "src/server/TreadmillSetup.server.lua"
       },
+      "TreadmillSetupWizard": {
+        "$path": "src/server/TreadmillSetupWizard.server.lua"
+      },
       "LeaderboardUpdater": {
         "$path": "src/server/LeaderboardUpdater.server.lua"
       },
