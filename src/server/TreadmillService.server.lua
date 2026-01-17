@@ -7,7 +7,7 @@ local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 -- ==================== DEPENDÊNCIAS ====================
-local TreadmillRegistry = require(script.Parent.TreadmillRegistry)
+local TreadmillRegistry = require(script.Parent.Modules.TreadmillRegistry)
 
 -- Opcional: TelemetryService (se existir)
 local TelemetryService = nil

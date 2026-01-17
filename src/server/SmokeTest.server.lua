@@ -76,7 +76,10 @@ print("━━━━━━━━━━━━━━━━━━━━━━━━�
 local ServerScriptService = game:GetService("ServerScriptService")
 local TreadmillRegistry = nil
 pcall(function()
-	TreadmillRegistry = require(ServerScriptService:WaitForChild("TreadmillRegistry", 1))
+	local modules = ServerScriptService:WaitForChild("Modules", 1)
+	if modules then
+		TreadmillRegistry = require(modules:WaitForChild("TreadmillRegistry", 1))
+	end
 end)
 
 test("TreadmillRegistry module exists", TreadmillRegistry ~= nil)
@@ -139,7 +142,10 @@ test("ProgressionMath module exists", ProgressionMath ~= nil)
 
 local TreadmillConfig = nil
 pcall(function()
-	TreadmillConfig = require(ServerScriptService:WaitForChild("TreadmillConfig", 1))
+	local modules = ServerScriptService:WaitForChild("Modules", 1)
+	if modules then
+		TreadmillConfig = require(modules:WaitForChild("TreadmillConfig", 1))
+	end
 end)
 test("TreadmillConfig module exists", TreadmillConfig ~= nil)
 

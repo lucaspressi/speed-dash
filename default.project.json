@@ -4,16 +4,76 @@
     "$className": "DataModel",
 
     "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
       "Shared": {
         "$path": "src/shared"
       }
     },
 
     "ServerScriptService": {
-      "$path": "src/server"
+      "$className": "ServerScriptService",
+
+      "SpeedGameServer": {
+        "$path": "src/server/SpeedGameServer.server.lua"
+      },
+      "TreadmillService": {
+        "$path": "src/server/TreadmillService.server.lua"
+      },
+      "TreadmillSetup": {
+        "$path": "src/server/TreadmillSetup.server.lua"
+      },
+      "LeaderboardUpdater": {
+        "$path": "src/server/LeaderboardUpdater.server.lua"
+      },
+      "ProgressionValidator": {
+        "$path": "src/server/ProgressionValidator.server.lua"
+      },
+      "AxeController": {
+        "$path": "src/server/AxeController.server.lua"
+      },
+      "RollingBallController": {
+        "$path": "src/server/RollingBallController.server.lua"
+      },
+      "NoobNpcAI": {
+        "$path": "src/server/NoobNpcAI.server.lua"
+      },
+      "SmokeTest": {
+        "$path": "src/server/SmokeTest.server.lua"
+      },
+      "MapSanitizer": {
+        "$path": "src/server/MapSanitizer.server.lua",
+        "$properties": {
+          "Disabled": true
+        }
+      },
+
+      "Modules": {
+        "$className": "Folder",
+        "TreadmillConfig": {
+          "$path": "src/server/modules/TreadmillConfig.lua"
+        },
+        "TreadmillRegistry": {
+          "$path": "src/server/modules/TreadmillRegistry.lua"
+        }
+      },
+
+      "DataStore2": {
+        "$path": "src/server/DataStore2.rbxm"
+      }
+    },
+
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "Templates": {
+        "$className": "Folder",
+        "TreadmillZoneHandler": {
+          "$path": "src/storage/templates/TreadmillZoneHandler.lua"
+        }
+      }
     },
 
     "StarterPlayer": {
+      "$className": "StarterPlayer",
       "StarterPlayerScripts": {
         "$path": "src/client"
       }
@@ -46,6 +106,7 @@
         }
       }
     },
+
     "Lighting": {
       "$properties": {
         "Ambient": [
@@ -59,6 +120,7 @@
         "Technology": "Voxel"
       }
     },
+
     "SoundService": {
       "$properties": {
         "RespectFilteringEnabled": true

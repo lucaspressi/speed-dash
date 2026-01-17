@@ -6,7 +6,7 @@ local workspace = game:GetService("Workspace")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 -- Carrega módulo de configuração
-local TreadmillConfig = require(script.Parent.TreadmillConfig)
+local TreadmillConfig = require(script.Parent.Modules.TreadmillConfig)
 local debugLog = TreadmillConfig.debugLog
 
 debugLog("==================== TREADMILL SETUP STARTING ====================")
