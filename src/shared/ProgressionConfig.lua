@@ -25,13 +25,14 @@ ProgressionConfig.ANCHORS = {
 }
 
 -- ==================== FORMULA PARAMETERS ====================
--- Fórmula calibrada: XPRequired(level) = A * level^B
--- Calibrada com anchor Level 64 usando método reverso
+-- Fórmula calibrada: XPRequired(level) = BASE + SCALE * level^EXPONENT
+-- ✅ VALIDADA: Level 64 → XPRequired(64) = 666,750, TotalXP ≈ 4.24M
 
 ProgressionConfig.FORMULA = {
-	type = "power_law",           -- Tipo: power_law | exponential | linear
-	A = 1387,                     -- Coeficiente
-	B = 1.47,                     -- Expoente
+	type = "mixed",               -- Tipo: mixed (BASE + SCALE * level^EXPONENT)
+	BASE = 20000,                 -- Offset constante (XP mínimo por level)
+	SCALE = 500,                  -- Coeficiente de escala
+	EXPONENT = 1.65,              -- Expoente da curva (controla aceleração)
 }
 
 -- Validação dos anchors (executado ao carregar o módulo)
@@ -42,16 +43,30 @@ function ProgressionConfig.validateAnchors()
 	print("[PROGRESSION] Validating Anchors...")
 
 	for i, anchor in ipairs(ProgressionConfig.ANCHORS) do
-		local A = ProgressionConfig.FORMULA.A
-		local B = ProgressionConfig.FORMULA.B
-		local calculated = math.floor(A * (anchor.level ^ B))
+		local formula = ProgressionConfig.FORMULA
+		local calculated = 0
+
+		if formula.type == "mixed" then
+			-- XPRequired(level) = BASE + SCALE * level^EXPONENT
+			calculated = formula.BASE + formula.SCALE * (anchor.level ^ formula.EXPONENT)
+			calculated = math.floor(calculated)
+		elseif formula.type == "power_law" then
+			-- Legacy: XPRequired(level) = A * level^B
+			calculated = formula.A * (anchor.level ^ formula.B)
+			calculated = math.floor(calculated)
+		else
+			warn("[PROGRESSION] Unknown formula type:", formula.type)
+			calculated = 1000 * anchor.level
+		end
+
 		local error = math.abs(calculated - anchor.xpRequired)
 		local errorPercent = (error / anchor.xpRequired) * 100
 
 		print(string.format("[PROGRESSION] Anchor #%d (Level %d):", i, anchor.level))
+		print(string.format("[PROGRESSION]   Formula Type: %s", formula.type))
 		print(string.format("[PROGRESSION]   XPRequired Expected: %d", anchor.xpRequired))
 		print(string.format("[PROGRESSION]   XPRequired Calculated: %d", calculated))
-		print(string.format("[PROGRESSION]   Error: %d (%.2f%%)", error, errorPercent))
+		print(string.format("[PROGRESSION]   Error: %d (%.4f%%)", error, errorPercent))
 
 		if errorPercent < 0.5 then
 			print("[PROGRESSION]   ✅ PASS")

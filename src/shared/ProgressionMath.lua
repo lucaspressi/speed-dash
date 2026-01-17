@@ -11,16 +11,32 @@ local ProgressionMath = {}
 -- Calcula XP necessário para passar de um level para o próximo
 -- Exemplo: XPRequired(64) = XP para passar do Level 64 → 65
 function ProgressionMath.XPRequired(level)
-	local A = ProgressionConfig.FORMULA.A
-	local B = ProgressionConfig.FORMULA.B
+	local formula = ProgressionConfig.FORMULA
 
-	if ProgressionConfig.FORMULA.type == "power_law" then
+	if formula.type == "mixed" then
+		-- XPRequired(level) = BASE + SCALE * level^EXPONENT
+		local BASE = formula.BASE or 0
+		local SCALE = formula.SCALE or 1
+		local EXPONENT = formula.EXPONENT or 1.5
+		return math.floor(BASE + SCALE * (level ^ EXPONENT))
+
+	elseif formula.type == "power_law" then
+		-- Legacy: XPRequired(level) = A * level^B
+		local A = formula.A or 1000
+		local B = formula.B or 1.5
 		return math.floor(A * (level ^ B))
-	elseif ProgressionConfig.FORMULA.type == "exponential" then
-		-- Fallback para fórmula exponencial (se precisar no futuro)
+
+	elseif formula.type == "exponential" then
+		-- Fallback para fórmula exponencial
+		local A = formula.A or 1000
+		local B = formula.B or 1.1
 		return math.floor(A * (B ^ level))
+
 	else
 		-- Fallback para fórmula linear
+		warn("[PROGRESSION] Unknown formula type:", formula.type, "- using linear fallback")
+		local A = formula.A or 1000
+		local B = formula.B or 100
 		return math.floor(A * level + B)
 	end
 end
