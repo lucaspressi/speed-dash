@@ -25,6 +25,9 @@ local GROUP_ID = 0 -- Replace with your group ID
 local speedGameUI = playerGui:WaitForChild("SpeedGameUI")
 local winsFrame = speedGameUI:WaitForChild("WinsFrame")
 local winsLabel = winsFrame:WaitForChild("WinsLabel")
+local rebirthFrame = speedGameUI:WaitForChild("RebirthFrame")
+local rebirthLabel = rebirthFrame:WaitForChild("RebirthLabel")
+print("[UIHandler] ✅ RebirthLabel found: " .. rebirthLabel:GetFullName())
 local levelFrame = speedGameUI:WaitForChild("LevelFrame")
 
 local speedDisplay = levelFrame:WaitForChild("SpeedDisplay")
@@ -243,7 +246,10 @@ end
 local function updateUI(data)
 	currentData = data
 
+	print("[UIHandler] Updating UI with Rebirths: " .. tostring(data.Rebirths))
 	winsLabel.Text = formatComma(data.Wins)
+	rebirthLabel.Text = formatComma(data.Rebirths or 0)
+	print("[UIHandler] RebirthLabel.Text set to: " .. rebirthLabel.Text)
 	speedValue.Text = formatNumber(data.TotalXP) .. " Speed"
 	levelText.Text = "Level " .. data.Level
 	xpText.Text = formatNumber(data.XP) .. "/" .. formatNumber(data.XPRequired)

@@ -42,6 +42,43 @@ print("Wins GUI found: " .. tostring(winsSurfaceGui ~= nil))
 print("Speed Timer found: " .. tostring(speedTimerLabel ~= nil))
 print("Wins Timer found: " .. tostring(winsTimerLabel ~= nil))
 
+-- Format large numbers with abbreviations
+local function formatNumber(num)
+	if num < 1000 then
+		return tostring(math.floor(num))
+	end
+
+	local suffixes = {
+		{1e30, "No"},  -- Nonillion
+		{1e27, "Oc"},  -- Octillion
+		{1e24, "Sp"},  -- Septillion
+		{1e21, "Sx"},  -- Sextillion
+		{1e18, "Qi"},  -- Quintillion
+		{1e15, "Qa"},  -- Quadrillion
+		{1e12, "T"},   -- Trillion
+		{1e9, "B"},    -- Billion
+		{1e6, "M"},    -- Million
+		{1e3, "K"}     -- Thousand
+	}
+
+	for _, data in ipairs(suffixes) do
+		local value, suffix = data[1], data[2]
+		if num >= value then
+			local formatted = num / value
+			-- Show 2 decimal places for values < 10, 1 decimal for values < 100, 0 decimals for >= 100
+			if formatted < 10 then
+				return string.format("%.2f", formatted) .. suffix
+			elseif formatted < 100 then
+				return string.format("%.1f", formatted) .. suffix
+			else
+				return string.format("%.0f", formatted) .. suffix
+			end
+		end
+	end
+
+	return tostring(math.floor(num))
+end
+
 -- Update timer text
 local function updateTimerText(seconds)
     local text = "Updating in " .. seconds .. " seconds"
@@ -90,7 +127,7 @@ local function updateLeaderboardDisplay(orderedDataStore, surfaceGui)
             end
             
             if nameLabel then nameLabel.Text = username end
-            if scoreLabel then scoreLabel.Text = tostring(score) end
+            if scoreLabel then scoreLabel.Text = formatNumber(score) end
         else
             if nameLabel then nameLabel.Text = "---" end
             if scoreLabel then scoreLabel.Text = "0" end

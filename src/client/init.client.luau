@@ -99,6 +99,7 @@ local winDebounce = false
 local stepAwardDebounce = false
 
 local currentLevel = 1
+local currentWins = 0  -- ✅ Wins do jogador (para Step Awards)
 local isFirstLoad = true
 local currentStepBonus = 1
 local currentMultiplier = 1
@@ -119,6 +120,8 @@ local purpleTreadmillParts = {}  -- Lista para esteiras roxas (x25)
 local runTrack = nil
 
 local stepAwardParts = {}
+local connectedStepAwards = {}  -- ✅ Rastreia quais StepAwards já foram conectados (evita duplicação)
+local connectedWinBlocks = {}   -- ✅ Rastreia quais WinBlocks já foram conectados (evita duplicação)
 
 local soundFolder = Instance.new("Folder")
 soundFolder.Name = "GameSounds"
@@ -293,9 +296,21 @@ local function showLevelUp(oldLevel, newLevel)
 end
 
 local function updateEquippedText()
+	-- ✅ Função para formatar wins com vírgulas
+	local function formatWins(num)
+		local formatted = tostring(num)
+		local k
+		while true do
+			formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", "%1,%2")
+			if k == 0 then break end
+		end
+		return formatted
+	end
+
 	for _, data in pairs(stepAwardParts) do
 		local part = data.part
 		local bonus = data.bonus
+		local requiredWins = data.requiredWins or 0
 		local textPart = part:FindFirstChild("TextPart")
 
 		if textPart then
@@ -303,6 +318,35 @@ local function updateEquippedText()
 			if gui then
 				local frame = gui:FindFirstChild("Frame")
 				if frame then
+					-- ✅ Encontra o Frame interno
+					local innerFrame = frame:FindFirstChild("Frame")
+					if innerFrame then
+						-- ✅ Atualiza as TextLabels (bonus e requisitos)
+						local textLabels = {}
+						for _, child in pairs(innerFrame:GetChildren()) do
+							if child:IsA("TextLabel") then
+								table.insert(textLabels, child)
+							end
+						end
+
+						-- Primeira TextLabel: Mostra o bônus "+N/step"
+						if textLabels[1] then
+							textLabels[1].Text = "+" .. bonus .. "/step"
+						end
+
+						-- Segunda TextLabel: Mostra os requisitos "Requires N Wins" ou "FREE!"
+						if textLabels[2] then
+							if requiredWins == 0 then
+								textLabels[2].Text = "FREE!"
+								textLabels[2].TextColor3 = Color3.fromRGB(0, 255, 100)
+							else
+								textLabels[2].Text = "Requires " .. formatWins(requiredWins) .. " Wins"
+								textLabels[2].TextColor3 = Color3.fromRGB(255, 255, 255)
+							end
+						end
+					end
+
+					-- ✅ Mostra/esconde label "EQUIPPED"
 					local equippedLabel = frame:FindFirstChild("EquippedLabel")
 
 					if bonus == currentStepBonus then
@@ -335,47 +379,6 @@ local function updateEquippedText()
 		end
 	end
 end
-
-UpdateUIEvent.OnClientEvent:Connect(function(data)
-	local oldLevel = currentLevel
-	currentLevel = data.Level
-
-	local oldBonus = currentStepBonus
-	currentStepBonus = data.StepBonus or 1
-
-	currentMultiplier = data.Multiplier or 1
-	hasSpeedBoost = data.SpeedBoostActive or false
-	currentTreadmillMultiplier = data.TreadmillMultiplier or 1
-
-	-- ✅ ATUALIZA O SPEED BOOST LEVEL
-	local oldSpeedBoostLevel = currentSpeedBoostLevel
-	currentSpeedBoostLevel = data.SpeedBoostLevel or 0
-
-	if currentSpeedBoostLevel ~= oldSpeedBoostLevel then
-		print("Speed Boost Level changed: " .. oldSpeedBoostLevel .. " → " .. currentSpeedBoostLevel)
-		updateSpeedBoostButton()
-	end
-
-	-- ✅ COOLDOWN DE VISUAL: Server controla quando mostrar o efeito +XP
-	if data.ShowVisual ~= nil then
-		shouldShowVisual = data.ShowVisual
-		print("[CLIENT_VISUAL] ShowVisual=" .. tostring(shouldShowVisual))
-		if shouldShowVisual then
-			print("[CLIENT_VISUAL] Calling showPlusOne()")
-			showPlusOne()
-		end
-	end
-
-	if currentLevel > oldLevel and not isFirstLoad then
-		showLevelUp(oldLevel, currentLevel)
-	end
-
-	isFirstLoad = false
-
-	if oldBonus ~= currentStepBonus then
-		updateEquippedText()
-	end
-end)
 
 local function showPlusOne()
 	local character = player.Character
@@ -444,6 +447,52 @@ local function showPlusOne()
 		billboard:Destroy()
 	end)
 end
+
+UpdateUIEvent.OnClientEvent:Connect(function(data)
+	local oldLevel = currentLevel
+	currentLevel = data.Level
+
+	-- ✅ Atualiza wins para Step Awards
+	local oldWins = currentWins
+	currentWins = data.Wins or 0
+
+	local oldBonus = currentStepBonus
+	currentStepBonus = data.StepBonus or 1
+
+	currentMultiplier = data.Multiplier or 1
+	hasSpeedBoost = data.SpeedBoostActive or false
+	currentTreadmillMultiplier = data.TreadmillMultiplier or 1
+
+	-- ✅ ATUALIZA O SPEED BOOST LEVEL
+	local oldSpeedBoostLevel = currentSpeedBoostLevel
+	currentSpeedBoostLevel = data.SpeedBoostLevel or 0
+
+	if currentSpeedBoostLevel ~= oldSpeedBoostLevel then
+		print("Speed Boost Level changed: " .. oldSpeedBoostLevel .. " → " .. currentSpeedBoostLevel)
+		updateSpeedBoostButton()
+	end
+
+	-- ✅ COOLDOWN DE VISUAL: Server controla quando mostrar o efeito +XP
+	if data.ShowVisual ~= nil then
+		shouldShowVisual = data.ShowVisual
+		print("[CLIENT_VISUAL] ShowVisual=" .. tostring(shouldShowVisual))
+		if shouldShowVisual then
+			print("[CLIENT_VISUAL] Calling showPlusOne()")
+			showPlusOne()
+		end
+	end
+
+	if currentLevel > oldLevel and not isFirstLoad then
+		showLevelUp(oldLevel, currentLevel)
+	end
+
+	isFirstLoad = false
+
+	-- ✅ Atualiza visuais dos Step Awards quando wins ou bonus mudarem
+	if oldBonus ~= currentStepBonus or oldWins ~= currentWins then
+		updateEquippedText()
+	end
+end)
 
 local function showMessage(text, color)
 	local screenGui = playerGui:FindFirstChild("SpeedGameUI")
@@ -705,6 +754,10 @@ player.CharacterAdded:Connect(function(character)
 end)
 
 local function connectWinBlock(obj)
+	-- ✅ Evita duplicação
+	if connectedWinBlocks[obj] then return end
+	connectedWinBlocks[obj] = true
+
 	obj.Touched:Connect(function(hit)
 		local character = player.Character
 		if character and hit:IsDescendantOf(character) and not winDebounce then
@@ -716,21 +769,40 @@ local function connectWinBlock(obj)
 end
 
 local function connectStepAward(obj)
-	local bonus = obj:GetAttribute("Bonus")
-	local requiredLevel = obj:GetAttribute("RequiredLevel")
-	if not bonus or not requiredLevel then return end
+	-- ✅ Evita duplicação
+	if connectedStepAwards[obj] then return end
+	connectedStepAwards[obj] = true
 
-	table.insert(stepAwardParts, {part = obj, bonus = bonus})
+	local bonus = obj:GetAttribute("Bonus")
+	local requiredWins = obj:GetAttribute("RequiredWins")
+
+	-- ✅ Suporte para legacy (RequiredLevel) mas prioriza RequiredWins
+	if not requiredWins then
+		requiredWins = obj:GetAttribute("RequiredLevel") or 0
+	end
+
+	if not bonus then return end
+
+	table.insert(stepAwardParts, {part = obj, bonus = bonus, requiredWins = requiredWins})
 
 	obj.Touched:Connect(function(hit)
 		local character = player.Character
 		if character and hit:IsDescendantOf(character) and not stepAwardDebounce then
 			stepAwardDebounce = true
-			if currentLevel >= requiredLevel then
+			if currentWins >= requiredWins then
 				EquipStepAwardEvent:FireServer(bonus)
 				showMessage("EQUIPPED! +" .. bonus .. "/step", Color3.fromRGB(0, 255, 100))
 			else
-				showMessage("Need Level " .. requiredLevel .. "!", Color3.fromRGB(255, 100, 100))
+				-- ✅ Formata número de wins com vírgula
+				local function formatWins(num)
+					local formatted = tostring(num)
+					while true do
+						formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", "%1,%2")
+						if k == 0 then break end
+					end
+					return formatted
+				end
+				showMessage("Need " .. formatWins(requiredWins) .. " Wins!", Color3.fromRGB(255, 100, 100))
 			end
 			task.delay(1, function() stepAwardDebounce = false end)
 		end
@@ -804,16 +876,16 @@ local function setupTreadmills()
 				print("[CLIENT]   → Using detection part: " .. detectionPart.Name .. " (Position: " .. tostring(detectionPart.Position) .. ")")
 
 				-- Adiciona à lista apropriada
-				if parent and string.match(parent.Name, "TreadmillPurple") then
+				if parent and string.find(parent.Name, "TreadmillPurple", 1, true) then
 					table.insert(purpleTreadmillParts, detectionPart)
 					print("[CLIENT]   → ✓ Added to PURPLE treadmills (x25)")
-				elseif parent and string.match(parent.Name, "TreadmillBlue") then
+				elseif parent and string.find(parent.Name, "TreadmillBlue", 1, true) then
 					table.insert(blueTreadmillParts, detectionPart)
 					print("[CLIENT]   → ✓ Added to BLUE treadmills (x9)")
-				elseif parent and (string.match(parent.Name, "TreadmillGold") or string.match(parent.Name, "TreadmillPaid")) then
+				elseif parent and (string.find(parent.Name, "TreadmillGold", 1, true) or string.find(parent.Name, "TreadmillPaid", 1, true)) then
 					table.insert(goldTreadmillParts, detectionPart)
 					print("[CLIENT]   → ✓ Added to GOLD treadmills (x3)")
-				elseif parent and string.match(parent.Name, "TreadmillFree") then
+				elseif parent and string.find(parent.Name, "TreadmillFree", 1, true) then
 					table.insert(treadmillParts, detectionPart)
 					print("[CLIENT]   → ✓ Added to FREE treadmills (x1)")
 				else
@@ -867,6 +939,30 @@ end
 -- Chama a função de setup
 task.spawn(setupTreadmills)
 
+-- ✅ Varredura inicial para WinBlocks e StepAwards (evita perder objetos que já existem)
+task.spawn(function()
+	task.wait(2)  -- Espera o workspace carregar
+	print("[CLIENT] Scanning for WinBlocks and StepAwards...")
+
+	local winBlocksFound = 0
+	local stepAwardsFound = 0
+
+	for _, obj in pairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart") then
+			if string.match(obj.Name, "WinBlock") then
+				connectWinBlock(obj)
+				winBlocksFound = winBlocksFound + 1
+			elseif string.match(obj.Name, "StepAward") then
+				connectStepAward(obj)
+				stepAwardsFound = stepAwardsFound + 1
+			end
+		end
+	end
+
+	print("[CLIENT] ✅ Found " .. winBlocksFound .. " WinBlocks")
+	print("[CLIENT] ✅ Found " .. stepAwardsFound .. " StepAwards")
+end)
+
 workspace.DescendantAdded:Connect(function(obj)
 	task.wait(0.1)
 	if obj.Name == "TreadmillZone" then
@@ -889,16 +985,16 @@ workspace.DescendantAdded:Connect(function(obj)
 		end
 
 		if detectionPart then
-			if parent and string.match(parent.Name, "TreadmillPurple") then
+			if parent and string.find(parent.Name, "TreadmillPurple", 1, true) then
 				table.insert(purpleTreadmillParts, detectionPart)
 				print("[CLIENT] → Added to PURPLE treadmills (x25) dynamically")
-			elseif parent and string.match(parent.Name, "TreadmillBlue") then
+			elseif parent and string.find(parent.Name, "TreadmillBlue", 1, true) then
 				table.insert(blueTreadmillParts, detectionPart)
 				print("[CLIENT] → Added to BLUE treadmills (x9) dynamically")
-			elseif parent and (string.match(parent.Name, "TreadmillGold") or string.match(parent.Name, "TreadmillPaid")) then
+			elseif parent and (string.find(parent.Name, "TreadmillGold", 1, true) or string.find(parent.Name, "TreadmillPaid", 1, true)) then
 				table.insert(goldTreadmillParts, detectionPart)
 				print("[CLIENT] → Added to GOLD treadmills (x3) dynamically")
-			elseif parent and string.match(parent.Name, "TreadmillFree") then
+			elseif parent and string.find(parent.Name, "TreadmillFree", 1, true) then
 				table.insert(treadmillParts, detectionPart)
 				print("[CLIENT] → Added to FREE treadmills (x1) dynamically")
 			end
