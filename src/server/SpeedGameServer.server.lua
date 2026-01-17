@@ -63,6 +63,10 @@ local VALID_MULTIPLIERS = {
 	[25] = true,  -- PURPLE treadmill
 }
 
+-- ==================== MODULES ====================
+-- ✅ PATCH: Progression system now uses centralized ProgressionMath
+local ProgressionMath = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("ProgressionMath"))
+
 -- ==================== DATASTORE2 ====================
 local DataStore2 = require(ServerScriptService:WaitForChild("DataStore2"))
 
@@ -130,8 +134,9 @@ local function debugPrint(category, message)
 	print("[" .. category .. "] " .. message)
 end
 
+-- ✅ PATCH: Now uses ProgressionMath (centralized formula)
 local function getXPForLevel(level)
-	return math.floor(100 * (level ^ 1.3))
+	return ProgressionMath.XPRequired(level)
 end
 
 -- Level 0 = 1x, 1=2x, 2=4x, 3=8x...
@@ -890,10 +895,13 @@ end)
 local winDebounce = {}
 local winAmounts = {
 	WinBlock = 1,
-	WinBlock2 = 5,
-	WinBlock3 = 10,
-	WinBlock4 = 50,
-	WinBlock5 = 200
+	WinBlock2 = 3,
+	WinBlock3 = 8,
+	WinBlock4 = 29,
+	WinBlock5 = 50,
+	WinBlock6 = 200,
+	WinBlock7 = 400,
+	WinBlock8 = 1250
 }
 
 local winBlocks = {}
