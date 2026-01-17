@@ -21,45 +21,51 @@ local Prompt10MSpeedEvent = Remotes:WaitForChild("Prompt10MSpeed")
 
 local GROUP_ID = 0 -- Replace with your group ID
 
--- Wait for UI
+-- Wait for UI (critical elements only)
 local speedGameUI = playerGui:WaitForChild("SpeedGameUI")
-local winsFrame = speedGameUI:WaitForChild("WinsFrame")
-local winsLabel = winsFrame:WaitForChild("WinsLabel")
-local rebirthFrame = speedGameUI:WaitForChild("RebirthFrame")
-local rebirthLabel = rebirthFrame:WaitForChild("RebirthLabel")
-print("[UIHandler] ✅ RebirthLabel found: " .. rebirthLabel:GetFullName())
-local levelFrame = speedGameUI:WaitForChild("LevelFrame")
 
-local speedDisplay = levelFrame:WaitForChild("SpeedDisplay")
-local speedValue = speedDisplay:WaitForChild("SpeedValue")
+-- Try to find UI elements (non-blocking)
+local winsFrame = speedGameUI:FindFirstChild("WinsFrame")
+local winsLabel = winsFrame and winsFrame:FindFirstChild("WinsLabel")
+local rebirthFrame = speedGameUI:FindFirstChild("RebirthFrame")
+local rebirthLabel = rebirthFrame and rebirthFrame:FindFirstChild("RebirthLabel")
+if rebirthLabel then
+	print("[UIHandler] ✅ RebirthLabel found: " .. rebirthLabel:GetFullName())
+else
+	warn("[UIHandler] ⚠️ RebirthLabel not found - rebirth display will not work")
+end
 
-local progressBg = levelFrame:WaitForChild("ProgressBg")
-local progressFill = progressBg:WaitForChild("ProgressFill")
-local levelText = progressBg:WaitForChild("LevelText")
-local xpText = progressBg:WaitForChild("XPText")
+local levelFrame = speedGameUI:FindFirstChild("LevelFrame")
+local speedDisplay = levelFrame and levelFrame:FindFirstChild("SpeedDisplay")
+local speedValue = speedDisplay and speedDisplay:FindFirstChild("SpeedValue")
 
--- Rebirth modal
-local rebirthModal = speedGameUI:WaitForChild("RebirthModal")
-local rebirthCloseButton = rebirthModal:WaitForChild("CloseButton")
-local topRow = rebirthModal:WaitForChild("TopRow")
-local bottomRow = rebirthModal:WaitForChild("BottomRow")
-local currentSpeedBox = topRow:WaitForChild("CurrentSpeedBox")
-local newSpeedBox = topRow:WaitForChild("NewSpeedBox")
-local currentLevelBox = bottomRow:WaitForChild("CurrentLevelBox")
-local newLevelBox = bottomRow:WaitForChild("NewLevelBox")
-local modalProgressBg = rebirthModal:WaitForChild("ProgressBg")
-local modalProgressFill = modalProgressBg:WaitForChild("ProgressFill")
-local modalProgressText = modalProgressBg:WaitForChild("ProgressText")
-local rebirthBtn = rebirthModal:WaitForChild("RebirthBtn")
+local progressBg = levelFrame and levelFrame:FindFirstChild("ProgressBg")
+local progressFill = progressBg and progressBg:FindFirstChild("ProgressFill")
+local levelText = progressBg and progressBg:FindFirstChild("LevelText")
+local xpText = progressBg and progressBg:FindFirstChild("XPText")
 
--- Free Gift modal
-local freeGiftModal = speedGameUI:WaitForChild("FreeGiftModal")
-local freeGiftCloseButton = freeGiftModal:WaitForChild("CloseButton")
-local step1Frame = freeGiftModal:WaitForChild("Step1Frame")
-local step2Frame = freeGiftModal:WaitForChild("Step2Frame")
-local verifyButton = freeGiftModal:WaitForChild("VerifyButton")
-local step1Check = step1Frame:WaitForChild("Checkmark")
-local step2Check = step2Frame:WaitForChild("Checkmark")
+-- Rebirth modal (optional)
+local rebirthModal = speedGameUI:FindFirstChild("RebirthModal")
+local rebirthCloseButton = rebirthModal and rebirthModal:FindFirstChild("CloseButton")
+local topRow = rebirthModal and rebirthModal:FindFirstChild("TopRow")
+local bottomRow = rebirthModal and rebirthModal:FindFirstChild("BottomRow")
+local currentSpeedBox = topRow and topRow:FindFirstChild("CurrentSpeedBox")
+local newSpeedBox = topRow and topRow:FindFirstChild("NewSpeedBox")
+local currentLevelBox = bottomRow and bottomRow:FindFirstChild("CurrentLevelBox")
+local newLevelBox = bottomRow and bottomRow:FindFirstChild("NewLevelBox")
+local modalProgressBg = rebirthModal and rebirthModal:FindFirstChild("ProgressBg")
+local modalProgressFill = modalProgressBg and modalProgressBg:FindFirstChild("ProgressFill")
+local modalProgressText = modalProgressBg and modalProgressBg:FindFirstChild("ProgressText")
+local rebirthBtn = rebirthModal and rebirthModal:FindFirstChild("RebirthBtn")
+
+-- Free Gift modal (optional)
+local freeGiftModal = speedGameUI:FindFirstChild("FreeGiftModal")
+local freeGiftCloseButton = freeGiftModal and freeGiftModal:FindFirstChild("CloseButton")
+local step1Frame = freeGiftModal and freeGiftModal:FindFirstChild("Step1Frame")
+local step2Frame = freeGiftModal and freeGiftModal:FindFirstChild("Step2Frame")
+local verifyButton = freeGiftModal and freeGiftModal:FindFirstChild("VerifyButton")
+local step1Check = step1Frame and step1Frame:FindFirstChild("Checkmark")
+local step2Check = step2Frame and step2Frame:FindFirstChild("Checkmark")
 
 -- Find buttons
 local rebirthButton = nil
@@ -164,9 +170,11 @@ local function formatComma(num)
 end
 
 local function tweenProgress(targetSize)
-	TweenService:Create(progressFill, TweenInfo.new(0.15, Enum.EasingStyle.Linear), {
-		Size = targetSize
-	}):Play()
+	if progressFill then
+		TweenService:Create(progressFill, TweenInfo.new(0.15, Enum.EasingStyle.Linear), {
+			Size = targetSize
+		}):Play()
+	end
 end
 
 local function showWinNotification(amount)
@@ -230,18 +238,34 @@ end
 ShowWinEvent.OnClientEvent:Connect(showWinNotification)
 
 local function updateRebirthModal()
+	if not rebirthModal then return end
+
 	local nextTierIndex = currentData.Rebirths + 1
 	local currentMultiplier = currentData.Multiplier or 1
 
 	if nextTierIndex > #rebirthTiers then
-		currentSpeedBox:FindFirstChild("SpeedText").Text = currentMultiplier .. "x Speed"
-		newSpeedBox:FindFirstChild("SpeedText").Text = "MAX!"
-		currentLevelBox:FindFirstChild("LevelText").Text = "Level " .. currentData.Level
-		newLevelBox:FindFirstChild("LevelText").Text = "MAXED"
-		modalProgressFill.Size = UDim2.new(1, 0, 1, 0)
-		modalProgressText.Text = "MAX REBIRTH!"
-		rebirthBtn.Text = "Maxed Out!"
-		rebirthBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+		if currentSpeedBox then
+			local speedText = currentSpeedBox:FindFirstChild("SpeedText")
+			if speedText then speedText.Text = currentMultiplier .. "x Speed" end
+		end
+		if newSpeedBox then
+			local speedText = newSpeedBox:FindFirstChild("SpeedText")
+			if speedText then speedText.Text = "MAX!" end
+		end
+		if currentLevelBox then
+			local levelText = currentLevelBox:FindFirstChild("LevelText")
+			if levelText then levelText.Text = "Level " .. currentData.Level end
+		end
+		if newLevelBox then
+			local levelText = newLevelBox:FindFirstChild("LevelText")
+			if levelText then levelText.Text = "MAXED" end
+		end
+		if modalProgressFill then modalProgressFill.Size = UDim2.new(1, 0, 1, 0) end
+		if modalProgressText then modalProgressText.Text = "MAX REBIRTH!" end
+		if rebirthBtn then
+			rebirthBtn.Text = "Maxed Out!"
+			rebirthBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+		end
 		return
 	end
 
@@ -249,27 +273,43 @@ local function updateRebirthModal()
 	local requiredLevel = nextTier.level
 	local newMultiplier = nextTier.multiplier
 
-	currentSpeedBox:FindFirstChild("SpeedText").Text = currentMultiplier .. "x Speed"
-	newSpeedBox:FindFirstChild("SpeedText").Text = newMultiplier .. "x Speed"
+	if currentSpeedBox then
+		local speedText = currentSpeedBox:FindFirstChild("SpeedText")
+		if speedText then speedText.Text = currentMultiplier .. "x Speed" end
+	end
+	if newSpeedBox then
+		local speedText = newSpeedBox:FindFirstChild("SpeedText")
+		if speedText then speedText.Text = newMultiplier .. "x Speed" end
+	end
 
-	currentLevelBox:FindFirstChild("LevelText").Text = "Level " .. requiredLevel
+	if currentLevelBox then
+		local levelText = currentLevelBox:FindFirstChild("LevelText")
+		if levelText then levelText.Text = "Level " .. requiredLevel end
+	end
 
-	if nextTierIndex + 1 <= #rebirthTiers then
-		newLevelBox:FindFirstChild("LevelText").Text = "Level " .. rebirthTiers[nextTierIndex + 1].level
-	else
-		newLevelBox:FindFirstChild("LevelText").Text = "Final Tier!"
+	if newLevelBox then
+		local levelText = newLevelBox:FindFirstChild("LevelText")
+		if levelText then
+			if nextTierIndex + 1 <= #rebirthTiers then
+				levelText.Text = "Level " .. rebirthTiers[nextTierIndex + 1].level
+			else
+				levelText.Text = "Final Tier!"
+			end
+		end
 	end
 
 	local progress = math.min(currentData.Level / requiredLevel, 1)
-	modalProgressFill.Size = UDim2.new(progress, 0, 1, 0)
-	modalProgressText.Text = "Level " .. currentData.Level .. "/" .. requiredLevel
+	if modalProgressFill then modalProgressFill.Size = UDim2.new(progress, 0, 1, 0) end
+	if modalProgressText then modalProgressText.Text = "Level " .. currentData.Level .. "/" .. requiredLevel end
 
-	if currentData.Level >= requiredLevel then
-		rebirthBtn.Text = "Rebirth!"
-		rebirthBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 150)
-	else
-		rebirthBtn.Text = "Need Level " .. requiredLevel
-		rebirthBtn.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+	if rebirthBtn then
+		if currentData.Level >= requiredLevel then
+			rebirthBtn.Text = "Rebirth!"
+			rebirthBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 150)
+		else
+			rebirthBtn.Text = "Need Level " .. requiredLevel
+			rebirthBtn.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+		end
 	end
 end
 
@@ -277,32 +317,51 @@ local function updateUI(data)
 	currentData = data
 
 	print("[UIHandler] Updating UI with Rebirths: " .. tostring(data.Rebirths))
-	winsLabel.Text = formatComma(data.Wins)
-	rebirthLabel.Text = formatComma(data.Rebirths or 0)
-	print("[UIHandler] RebirthLabel.Text set to: " .. rebirthLabel.Text)
-	speedValue.Text = formatNumber(data.TotalXP) .. " Speed"
-	levelText.Text = "Level " .. data.Level
-	xpText.Text = formatNumber(data.XP) .. "/" .. formatNumber(data.XPRequired)
+
+	if winsLabel then
+		winsLabel.Text = formatComma(data.Wins)
+	end
+
+	if rebirthLabel then
+		rebirthLabel.Text = formatComma(data.Rebirths or 0)
+		print("[UIHandler] RebirthLabel.Text set to: " .. rebirthLabel.Text)
+	end
+
+	if speedValue then
+		speedValue.Text = formatNumber(data.TotalXP) .. " Speed"
+	end
+
+	if levelText then
+		levelText.Text = "Level " .. data.Level
+	end
+
+	if xpText then
+		xpText.Text = formatNumber(data.XP) .. "/" .. formatNumber(data.XPRequired)
+	end
 
 	local progress = data.XP / data.XPRequired
 	tweenProgress(UDim2.new(progress, 0, 1, 0))
 
-	if rebirthModal.Visible then
+	if rebirthModal and rebirthModal.Visible then
 		updateRebirthModal()
 	end
 
 	if data.GiftClaimed then
 		giftClaimed = true
-		step1Check.Visible = true
-		step2Check.Visible = true
-		verifyButton.Text = "Claimed! ✓"
-		verifyButton.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+		if step1Check then step1Check.Visible = true end
+		if step2Check then step2Check.Visible = true end
+		if verifyButton then
+			verifyButton.Text = "Claimed! ✓"
+			verifyButton.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+		end
 	end
 end
 
 UpdateUIEvent.OnClientEvent:Connect(updateUI)
 
 local function openModal(modal)
+	if not modal then return end
+
 	modal.Visible = true
 	modal.Size = UDim2.new(0, 0, 0, 0)
 
@@ -319,6 +378,8 @@ local function openModal(modal)
 end
 
 local function closeModal(modal)
+	if not modal then return end
+
 	TweenService:Create(modal, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 		Size = UDim2.new(0, 0, 0, 0)
 	}):Play()
@@ -336,62 +397,72 @@ if rebirthButton then
 	end)
 end
 
-rebirthCloseButton.MouseButton1Click:Connect(function()
-	closeModal(rebirthModal)
-end)
+if rebirthCloseButton then
+	rebirthCloseButton.MouseButton1Click:Connect(function()
+		closeModal(rebirthModal)
+	end)
+end
 
-rebirthBtn.MouseButton1Click:Connect(function()
-	local nextTierIndex = currentData.Rebirths + 1
-	if nextTierIndex <= #rebirthTiers then
-		local nextTier = rebirthTiers[nextTierIndex]
-		if currentData.Level >= nextTier.level then
-			RebirthEvent:FireServer()
-			closeModal(rebirthModal)
+if rebirthBtn then
+	rebirthBtn.MouseButton1Click:Connect(function()
+		local nextTierIndex = currentData.Rebirths + 1
+		if nextTierIndex <= #rebirthTiers then
+			local nextTier = rebirthTiers[nextTierIndex]
+			if currentData.Level >= nextTier.level then
+				RebirthEvent:FireServer()
+				closeModal(rebirthModal)
+			end
 		end
-	end
-end)
+	end)
+end
 
 if freeButton then
 	freeButton.MouseButton1Click:Connect(function()
 		openModal(freeGiftModal)
-		step1Check.Visible = true
+		if step1Check then step1Check.Visible = true end
 	end)
 end
 
-freeGiftCloseButton.MouseButton1Click:Connect(function()
-	closeModal(freeGiftModal)
-end)
+if freeGiftCloseButton then
+	freeGiftCloseButton.MouseButton1Click:Connect(function()
+		closeModal(freeGiftModal)
+	end)
+end
 
-verifyButton.MouseButton1Click:Connect(function()
-	if giftClaimed then return end
+if verifyButton then
+	verifyButton.MouseButton1Click:Connect(function()
+		if giftClaimed then return end
 
-	verifyButton.Text = "Checking..."
+		verifyButton.Text = "Checking..."
 
-	local isInGroup = VerifyGroupEvent:InvokeServer()
+		local isInGroup = VerifyGroupEvent:InvokeServer()
 
-	if isInGroup then
-		step2Check.Visible = true
-		ClaimGiftEvent:FireServer()
-		giftClaimed = true
-		verifyButton.Text = "Claimed! ✓"
-		verifyButton.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
-		task.delay(1.5, function()
-			closeModal(freeGiftModal)
-		end)
-	else
-		verifyButton.Text = "Join Group First!"
-		verifyButton.BackgroundColor3 = Color3.fromRGB(220, 80, 80)
-		task.delay(2, function()
-			verifyButton.Text = "Verify & Claim!"
-			verifyButton.BackgroundColor3 = Color3.fromRGB(80, 200, 80)
-		end)
-	end
-end)
+		if isInGroup then
+			if step2Check then step2Check.Visible = true end
+			ClaimGiftEvent:FireServer()
+			giftClaimed = true
+			verifyButton.Text = "Claimed! ✓"
+			verifyButton.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+			task.delay(1.5, function()
+				closeModal(freeGiftModal)
+			end)
+		else
+			verifyButton.Text = "Join Group First!"
+			verifyButton.BackgroundColor3 = Color3.fromRGB(220, 80, 80)
+			task.delay(2, function()
+				verifyButton.Text = "Verify & Claim!"
+				verifyButton.BackgroundColor3 = Color3.fromRGB(80, 200, 80)
+			end)
+		end
+	end)
+end
 
-winsFrame.Active = false
-for _, child in pairs(winsFrame:GetDescendants()) do
-	if child:IsA("GuiObject") then
-		child.Active = false
+if winsFrame then
+	winsFrame.Active = false
+	for _, child in pairs(winsFrame:GetDescendants()) do
+		if child:IsA("GuiObject") then
+			child.Active = false
+		end
 	end
 end
 

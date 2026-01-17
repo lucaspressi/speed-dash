@@ -16,12 +16,18 @@ local TREADMILL_X3_PRODUCT_ID = 3510639799   -- 3x Speed Treadmill (dourada) - 5
 local TREADMILL_X9_PRODUCT_ID = 3510662188   -- 9x Speed Treadmill (azul) - 149 Robux
 local TREADMILL_X25_PRODUCT_ID = 3510662405  -- 25x Speed Treadmill (roxa) - 399 Robux
 
--- ✅ CACHE LOCAL de ownership (atualizado pelo server via RemoteEvent)
+-- 🔄 PATCH 4: CACHE LOCAL de ownership (nil ao invés de false)
+-- nil = não inicializado (aguardando snapshot do server)
+-- true = possui
+-- false = não possui (mas confirmado pelo server)
 local treadmillOwnershipCache = {
-	[3] = false,
-	[9] = false,
-	[25] = false,
+	[3] = nil,   -- Aguardando snapshot
+	[9] = nil,   -- Aguardando snapshot
+	[25] = nil,  -- Aguardando snapshot
 }
+
+-- 🔄 NÃO inicializa com Attributes imediatamente - aguarda snapshot do server
+print("[CLIENT] Ownership cache initialized as nil (awaiting server snapshot)...")
 
 -- Função para verificar se tem acesso à esteira por multiplier
 local function hasTreadmillAccess(multiplier)
@@ -45,33 +51,24 @@ end
 -- Debounce para evitar múltiplos prompts
 local purchasePromptDebounce = false
 
--- Debug: mostra quando os atributos mudam
+-- ✅ SIGNALS AGORA SÓ ATUALIZAM O CACHE (não leem de hasXxxAccess que usa o próprio cache)
+-- Isso evita loop e garante que o servidor é a source of truth
 player:GetAttributeChangedSignal("TreadmillX3Owned"):Connect(function()
-	local hasAccess = hasGoldTreadmillAccess()
-	print("[CLIENT] TreadmillX3Owned changed to: " .. tostring(hasAccess))
-	treadmillOwnershipCache[3] = hasAccess
+	local newValue = player:GetAttribute("TreadmillX3Owned") == true
+	print("[CLIENT] TreadmillX3Owned attribute changed to: " .. tostring(newValue))
+	treadmillOwnershipCache[3] = newValue
 end)
 
 player:GetAttributeChangedSignal("TreadmillX9Owned"):Connect(function()
-	local hasAccess = hasBlueTreadmillAccess()
-	print("[CLIENT] TreadmillX9Owned changed to: " .. tostring(hasAccess))
-	treadmillOwnershipCache[9] = hasAccess
+	local newValue = player:GetAttribute("TreadmillX9Owned") == true
+	print("[CLIENT] TreadmillX9Owned attribute changed to: " .. tostring(newValue))
+	treadmillOwnershipCache[9] = newValue
 end)
 
 player:GetAttributeChangedSignal("TreadmillX25Owned"):Connect(function()
-	local hasAccess = hasPurpleTreadmillAccess()
-	print("[CLIENT] TreadmillX25Owned changed to: " .. tostring(hasAccess))
-	treadmillOwnershipCache[25] = hasAccess
-end)
-
--- Checa o valor inicial
-task.spawn(function()
-	task.wait(1)
-	print("[CLIENT] Initial TreadmillX3Owned: " .. tostring(hasGoldTreadmillAccess()))
-	-- Inicializa cache com atributos do player
-	treadmillOwnershipCache[3] = player:GetAttribute("TreadmillX3Owned") == true
-	treadmillOwnershipCache[9] = player:GetAttribute("TreadmillX9Owned") == true
-	treadmillOwnershipCache[25] = player:GetAttribute("TreadmillX25Owned") == true
+	local newValue = player:GetAttribute("TreadmillX25Owned") == true
+	print("[CLIENT] TreadmillX25Owned attribute changed to: " .. tostring(newValue))
+	treadmillOwnershipCache[25] = newValue
 end)
 
 local UpdateSpeedEvent = Remotes:WaitForChild("UpdateSpeed")
@@ -80,17 +77,61 @@ local EquipStepAwardEvent = Remotes:WaitForChild("EquipStepAward")
 local UpdateUIEvent = Remotes:WaitForChild("UpdateUI")
 local TreadmillOwnershipUpdated = Remotes:WaitForChild("TreadmillOwnershipUpdated")
 
--- ✅ LISTENER: Atualiza ownership quando server notifica após compra
-TreadmillOwnershipUpdated.OnClientEvent:Connect(function(multiplier, owned)
-	print("[CLIENT] TreadmillOwnershipUpdated received: x" .. multiplier .. " = " .. tostring(owned))
-	treadmillOwnershipCache[multiplier] = owned
+-- 🔄 PATCH 4: Snapshot com timeout e aplicação ANTES da UI
+local snapshotReceived = false
 
-	-- Atualiza o atributo local também (redundante mas garante sincronização)
-	local key = "TreadmillX" .. multiplier .. "Owned"
-	player:SetAttribute(key, owned)
+-- ✅ LISTENER: Atualiza ownership quando server notifica (após compra ou join)
+-- Aceita dois formatos:
+-- 1. Snapshot completo (table): {[3]=true, [9]=false, [25]=true}
+-- 2. Update individual (multiplier, owned): (3, true)
+TreadmillOwnershipUpdated.OnClientEvent:Connect(function(multiplierOrSnapshot, owned)
+	if type(multiplierOrSnapshot) == "table" then
+		-- Formato: snapshot completo (usado no join)
+		print("[CLIENT] TreadmillOwnershipUpdated received SNAPSHOT:")
+		for mult, isOwned in pairs(multiplierOrSnapshot) do
+			print("[CLIENT]   x" .. mult .. " = " .. tostring(isOwned))
+			treadmillOwnershipCache[mult] = isOwned
 
-	print("[CLIENT] Ownership cache updated. Can now use x" .. multiplier .. " treadmill!")
+			-- Atualiza atributo do player (sincronização)
+			local key = "TreadmillX" .. mult .. "Owned"
+			player:SetAttribute(key, isOwned)
+		end
+		print("[CLIENT] Ownership cache fully updated from snapshot!")
+		snapshotReceived = true
+	else
+		-- Formato: update individual (usado após compra)
+		local multiplier = multiplierOrSnapshot
+		print("[CLIENT] TreadmillOwnershipUpdated received: x" .. multiplier .. " = " .. tostring(owned))
+		treadmillOwnershipCache[multiplier] = owned
+
+		-- Atualiza o atributo local também (redundante mas garante sincronização)
+		local key = "TreadmillX" .. multiplier .. "Owned"
+		player:SetAttribute(key, owned)
+
+		print("[CLIENT] Ownership cache updated. Can now use x" .. multiplier .. " treadmill!")
+	end
 end)
+
+-- 🔄 AGUARDA SNAPSHOT DO SERVER (timeout: 5 segundos)
+-- CRÍTICO: Aplica ANTES de inicializar qualquer UI ou lógica de gameplay
+print("[CLIENT] Waiting for ownership snapshot from server (timeout: 5s)...")
+local waitStartTime = tick()
+local SNAPSHOT_TIMEOUT = 5
+
+while not snapshotReceived and (tick() - waitStartTime) < SNAPSHOT_TIMEOUT do
+	task.wait(0.1)
+end
+
+if snapshotReceived then
+	print("[CLIENT] ✅ Snapshot received successfully!")
+else
+	warn("[CLIENT] ⚠️ Snapshot timeout! Falling back to player Attributes...")
+	-- Fallback: lê de Attributes do player (se server setou antes)
+	treadmillOwnershipCache[3] = player:GetAttribute("TreadmillX3Owned") == true
+	treadmillOwnershipCache[9] = player:GetAttribute("TreadmillX9Owned") == true
+	treadmillOwnershipCache[25] = player:GetAttribute("TreadmillX25Owned") == true
+	print("[CLIENT] Fallback cache: x3=" .. tostring(treadmillOwnershipCache[3]) .. " x9=" .. tostring(treadmillOwnershipCache[9]) .. " x25=" .. tostring(treadmillOwnershipCache[25]))
+end
 
 local lastPosition = nil
 local stepAccumulator = 0
@@ -118,6 +159,9 @@ local goldTreadmillParts = {}
 local blueTreadmillParts = {}    -- Lista para esteiras azuis (x9)
 local purpleTreadmillParts = {}  -- Lista para esteiras roxas (x25)
 local runTrack = nil
+
+-- ✅ SET para deduplicate zonas (evita adicionar a mesma zone 2x)
+local detectedZones = {}  -- [Instance] = true
 
 local stepAwardParts = {}
 local connectedStepAwards = {}  -- ✅ Rastreia quais StepAwards já foram conectados (evita duplicação)
@@ -555,6 +599,8 @@ local function stopRunAnimation()
 	end
 end
 
+-- 🔄 PATCH 4: DEPRECATED - Server-side detection via TreadmillService
+--[[
 local function isOnTreadmill()
 	local character = player.Character
 	if not character then return false, false, false, false end
@@ -632,7 +678,10 @@ local function isOnTreadmill()
 
 	return false, false, false, false
 end
+--]]
 
+-- 🔄 PATCH 4: Client simplificado - UX only
+-- Server detecta zones, client apenas envia steps e mostra prompts
 RunService.Heartbeat:Connect(function(dt)
 	local character = player.Character
 	if not character then return end
@@ -643,12 +692,13 @@ RunService.Heartbeat:Connect(function(dt)
 
 	if humanoid.Health <= 0 then return end
 
+	-- Lê estado do player (setado pelo TreadmillService no server)
+	local serverOnTreadmill = player:GetAttribute("OnTreadmill") == true
+	local serverMultiplier = player:GetAttribute("CurrentTreadmillMultiplier") or 0
+
+	-- Animação de corrida
 	local wasOnTreadmill = onTreadmill
-	local isGold, isBlue, isPurple
-	onTreadmill, isGold, isBlue, isPurple = isOnTreadmill()
-	onGoldTreadmill = isGold
-	onBlueTreadmill = isBlue
-	onPurpleTreadmill = isPurple
+	onTreadmill = serverOnTreadmill
 
 	if onTreadmill and not wasOnTreadmill then
 		playRunAnimation()
@@ -658,76 +708,48 @@ RunService.Heartbeat:Connect(function(dt)
 		stopRunAnimation()
 	end
 
+	-- Se está em treadmill, envia steps regularmente
 	if onTreadmill then
 		xpTimer = xpTimer + dt
 		if xpTimer >= 0.15 then
 			xpTimer = 0
 
-			-- Prioridade: Purple (x25) > Blue (x9) > Gold (x3) > Free (x1)
+			-- 🔄 NOVO PROTOCOLO: Envia apenas steps (sem multiplier)
+			-- Server determina multiplier pela posição do player
+			UpdateSpeedEvent:FireServer(1)  -- Server-authoritative!
 
-			-- Esteira roxa (x25) - maior prioridade
-			if onPurpleTreadmill then
-				local hasAccess = hasPurpleTreadmillAccess()
-				print("[CLIENT] On PURPLE treadmill (x25)! hasAccess=" .. tostring(hasAccess))
-				if hasAccess then
-					UpdateSpeedEvent:FireServer(1, 25) -- steps, treadmillMultiplier = 25
-				else
-					-- Prompt para comprar a esteira x25 (uma vez a cada 5 segundos)
-					if not purchasePromptDebounce then
-						purchasePromptDebounce = true
-						print("[CLIENT] Prompting purchase for Treadmill x25")
-						MarketplaceService:PromptProductPurchase(player, TREADMILL_X25_PRODUCT_ID)
-						task.delay(5, function()
-							purchasePromptDebounce = false
-						end)
+			-- Verifica se tem acesso (para mostrar prompt)
+			local hasAccess = (serverMultiplier == 1 or treadmillOwnershipCache[serverMultiplier] == true)
+
+			if not hasAccess and serverMultiplier > 1 then
+				-- Não tem acesso - mostra prompt de compra
+				if not purchasePromptDebounce then
+					purchasePromptDebounce = true
+
+					local productId = nil
+					if serverMultiplier == 3 then
+						productId = TREADMILL_X3_PRODUCT_ID
+					elseif serverMultiplier == 9 then
+						productId = TREADMILL_X9_PRODUCT_ID
+					elseif serverMultiplier == 25 then
+						productId = TREADMILL_X25_PRODUCT_ID
 					end
-				end
 
-			-- Esteira azul (x9)
-			elseif onBlueTreadmill then
-				local hasAccess = hasBlueTreadmillAccess()
-				print("[CLIENT] On BLUE treadmill (x9)! hasAccess=" .. tostring(hasAccess))
-				if hasAccess then
-					UpdateSpeedEvent:FireServer(1, 9) -- steps, treadmillMultiplier = 9
-				else
-					-- Prompt para comprar a esteira x9 (uma vez a cada 5 segundos)
-					if not purchasePromptDebounce then
-						purchasePromptDebounce = true
-						print("[CLIENT] Prompting purchase for Treadmill x9")
-						MarketplaceService:PromptProductPurchase(player, TREADMILL_X9_PRODUCT_ID)
-						task.delay(5, function()
-							purchasePromptDebounce = false
-						end)
+					if productId then
+						print("[CLIENT] Prompting purchase for Treadmill x" .. serverMultiplier)
+						MarketplaceService:PromptProductPurchase(player, productId)
 					end
-				end
 
-			-- Esteira dourada (x3)
-			elseif onGoldTreadmill then
-				local hasAccess = hasGoldTreadmillAccess()
-				print("[CLIENT] On GOLD treadmill (x3)! hasAccess=" .. tostring(hasAccess))
-				if hasAccess then
-					UpdateSpeedEvent:FireServer(1, 3) -- steps, treadmillMultiplier = 3
-				else
-					-- Prompt para comprar a esteira x3 (uma vez a cada 5 segundos)
-					if not purchasePromptDebounce then
-						purchasePromptDebounce = true
-						print("[CLIENT] Prompting purchase for Treadmill x3")
-						MarketplaceService:PromptProductPurchase(player, TREADMILL_X3_PRODUCT_ID)
-						task.delay(5, function()
-							purchasePromptDebounce = false
-						end)
-					end
+					task.delay(5, function()
+						purchasePromptDebounce = false
+					end)
 				end
-
-			-- Esteira grátis (x1)
-			else
-				print("[CLIENT] On FREE treadmill")
-				UpdateSpeedEvent:FireServer(1, 1) -- steps, treadmillMultiplier = 1
 			end
 		end
 		return
 	end
 
+	-- Walking (fora da treadmill)
 	local currentPos = hrp.Position
 
 	if lastPosition and humanoid.MoveDirection.Magnitude > 0 then
@@ -736,7 +758,7 @@ RunService.Heartbeat:Connect(function(dt)
 
 		while stepAccumulator >= STEP_DISTANCE do
 			stepAccumulator = stepAccumulator - STEP_DISTANCE
-			UpdateSpeedEvent:FireServer(1) -- visual mostrado via UpdateUIEvent com cooldown
+			UpdateSpeedEvent:FireServer(1)  -- 🔄 Server-authoritative (sem multiplier)
 		end
 	end
 
@@ -809,7 +831,37 @@ local function connectStepAward(obj)
 	end)
 end
 
--- Função para procurar esteiras (com delay para garantir que workspace carregou)
+-- ✅ FUNÇÃO HELPER: Adiciona zone à lista apropriada (com deduplicação)
+local function addZoneToList(zone, multiplier)
+	-- Deduplica: verifica se já foi adicionada
+	if detectedZones[zone] then
+		print("[CLIENT]   → Already detected, skipping duplicate")
+		return
+	end
+
+	detectedZones[zone] = true
+
+	-- Adiciona à lista apropriada
+	if multiplier == 25 then
+		table.insert(purpleTreadmillParts, zone)
+		print("[CLIENT]   → ✓ Added to PURPLE treadmills (x25)")
+	elseif multiplier == 9 then
+		table.insert(blueTreadmillParts, zone)
+		print("[CLIENT]   → ✓ Added to BLUE treadmills (x9)")
+	elseif multiplier == 3 then
+		table.insert(goldTreadmillParts, zone)
+		print("[CLIENT]   → ✓ Added to GOLD treadmills (x3)")
+	elseif multiplier == 1 then
+		table.insert(treadmillParts, zone)
+		print("[CLIENT]   → ✓ Added to FREE treadmills (x1)")
+	else
+		warn("[CLIENT]   → Unknown multiplier: " .. tostring(multiplier))
+	end
+end
+
+-- 🔄 PATCH 4: DEPRECATED - Server-side detection via TreadmillService
+-- Mantido comentado para rollback se necessário
+--[[
 local function setupTreadmills()
 	print("[CLIENT] ========== STARTING TREADMILL DETECTION ==========")
 	print("[CLIENT] Waiting for workspace to load...")
@@ -821,123 +873,71 @@ local function setupTreadmills()
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if string.match(obj.Name, "Treadmill") then
 			treadmillRelatedObjects = treadmillRelatedObjects + 1
-			local parent = obj.Parent
-			print("[CLIENT]   Found: " .. obj.Name .. " (" .. obj.ClassName .. ") - Parent: " .. (parent and parent.Name or "nil") .. " - FullName: " .. obj:GetFullName())
-
-			-- Se for um BasePart, mostra Position e Size
-			if obj:IsA("BasePart") then
-				print("[CLIENT]     → Is BasePart - Position: " .. tostring(obj.Position) .. " Size: " .. tostring(obj.Size))
-			end
-
-			-- Se for um Model, mostra se tem PrimaryPart
-			if obj:IsA("Model") then
-				print("[CLIENT]     → Is Model - PrimaryPart: " .. tostring(obj.PrimaryPart))
-			end
 		end
 	end
 	print("[CLIENT] Total objects with 'Treadmill' in name: " .. treadmillRelatedObjects)
 
-	-- Agora procura especificamente por TreadmillZone
-	print("[CLIENT] Starting TreadmillZone detection...")
+	-- Agora procura especificamente por TreadmillZone usando ATTRIBUTES (novo sistema)
+	print("[CLIENT] Starting TreadmillZone detection (using Attributes)...")
 	local treadmillZonesFound = 0
+	local validZonesDetected = 0
+	local invalidZonesSkipped = 0
 
 	for _, obj in pairs(workspace:GetDescendants()) do
-		if obj.Name == "TreadmillZone" then
+		if obj.Name == "TreadmillZone" and obj:IsA("BasePart") then
 			treadmillZonesFound = treadmillZonesFound + 1
-			local parent = obj.Parent
 			print("[CLIENT] Found TreadmillZone #" .. treadmillZonesFound)
-			print("[CLIENT]   Name: " .. obj.Name)
-			print("[CLIENT]   Type: " .. obj.ClassName)
-			print("[CLIENT]   Parent: " .. (parent and parent.Name or "nil"))
 			print("[CLIENT]   FullName: " .. obj:GetFullName())
 
-			-- Determina qual part usar para detecção
-			local detectionPart = nil
-			if obj:IsA("BasePart") then
-				detectionPart = obj
-				print("[CLIENT]   → Is BasePart, using directly")
-			elseif obj:IsA("Model") and obj.PrimaryPart then
-				detectionPart = obj.PrimaryPart
-				print("[CLIENT]   → Is Model with PrimaryPart, using PrimaryPart")
-			elseif obj:IsA("Model") then
-				-- Procura por um BasePart dentro do Model
-				for _, child in pairs(obj:GetDescendants()) do
-					if child:IsA("BasePart") then
-						detectionPart = child
-						print("[CLIENT]   → Is Model, using first BasePart found: " .. child.Name)
-						break
-					end
-				end
-			end
+			-- ✅ LÊ ATTRIBUTES (novo sistema - mais confiável que nome do parent)
+			local multiplier = obj:GetAttribute("Multiplier")
+			local isFree = obj:GetAttribute("IsFree")
+			local productId = obj:GetAttribute("ProductId")
 
-			if not detectionPart then
-				warn("[CLIENT]   → Could not find BasePart for detection!")
+			print("[CLIENT]   Attributes:")
+			print("[CLIENT]     Multiplier: " .. tostring(multiplier))
+			print("[CLIENT]     IsFree: " .. tostring(isFree))
+			print("[CLIENT]     ProductId: " .. tostring(productId))
+
+			-- Validação: deve ter pelo menos Multiplier
+			if multiplier then
+				-- Adiciona à lista apropriada (com deduplicação)
+				addZoneToList(obj, multiplier)
+				validZonesDetected = validZonesDetected + 1
 			else
-				print("[CLIENT]   → Using detection part: " .. detectionPart.Name .. " (Position: " .. tostring(detectionPart.Position) .. ")")
-
-				-- Adiciona à lista apropriada
-				if parent and string.find(parent.Name, "TreadmillPurple", 1, true) then
-					table.insert(purpleTreadmillParts, detectionPart)
-					print("[CLIENT]   → ✓ Added to PURPLE treadmills (x25)")
-				elseif parent and string.find(parent.Name, "TreadmillBlue", 1, true) then
-					table.insert(blueTreadmillParts, detectionPart)
-					print("[CLIENT]   → ✓ Added to BLUE treadmills (x9)")
-				elseif parent and (string.find(parent.Name, "TreadmillGold", 1, true) or string.find(parent.Name, "TreadmillPaid", 1, true)) then
-					table.insert(goldTreadmillParts, detectionPart)
-					print("[CLIENT]   → ✓ Added to GOLD treadmills (x3)")
-				elseif parent and string.find(parent.Name, "TreadmillFree", 1, true) then
-					table.insert(treadmillParts, detectionPart)
-					print("[CLIENT]   → ✓ Added to FREE treadmills (x1)")
-				else
-					print("[CLIENT]   → ✗ Not added (parent doesn't match pattern)")
-					if parent then
-						print("[CLIENT]      Parent name: '" .. parent.Name .. "'")
-					end
-				end
+				warn("[CLIENT]   → ✗ SKIPPED: Zone missing Multiplier attribute!")
+				warn("[CLIENT]      This zone will NOT work. Check TreadmillSetup output on server.")
+				invalidZonesSkipped = invalidZonesSkipped + 1
 			end
 		end
 	end
 
 	print("[CLIENT] ========== SEARCH COMPLETE ==========")
 	print("[CLIENT] Total TreadmillZones found: " .. treadmillZonesFound)
-	print("[CLIENT] Total FREE treadmills (x1): " .. #treadmillParts)
-	print("[CLIENT] Total GOLD treadmills (x3): " .. #goldTreadmillParts)
-	print("[CLIENT] Total BLUE treadmills (x9): " .. #blueTreadmillParts)
-	print("[CLIENT] Total PURPLE treadmills (x25): " .. #purpleTreadmillParts)
-
-	-- Debug: lista todas as esteiras encontradas
-	if #treadmillParts > 0 then
-		print("[CLIENT] FREE treadmills list:")
-		for i, conveyor in ipairs(treadmillParts) do
-			print("[CLIENT]   #" .. i .. ": " .. conveyor:GetFullName())
-		end
-	end
-	if #goldTreadmillParts > 0 then
-		print("[CLIENT] GOLD treadmills list:")
-		for i, conveyor in ipairs(goldTreadmillParts) do
-			print("[CLIENT]   #" .. i .. ": " .. conveyor:GetFullName())
-		end
-	end
-	if #blueTreadmillParts > 0 then
-		print("[CLIENT] BLUE treadmills list:")
-		for i, conveyor in ipairs(blueTreadmillParts) do
-			print("[CLIENT]   #" .. i .. ": " .. conveyor:GetFullName())
-		end
-	end
-	if #purpleTreadmillParts > 0 then
-		print("[CLIENT] PURPLE treadmills list:")
-		for i, conveyor in ipairs(purpleTreadmillParts) do
-			print("[CLIENT]   #" .. i .. ": " .. conveyor:GetFullName())
-		end
-	end
+	print("[CLIENT] Valid zones detected: " .. validZonesDetected)
+	print("[CLIENT] Invalid zones skipped: " .. invalidZonesSkipped)
+	print("[CLIENT] ")
+	print("[CLIENT] Detected by multiplier:")
+	print("[CLIENT]   FREE treadmills (x1): " .. #treadmillParts)
+	print("[CLIENT]   GOLD treadmills (x3): " .. #goldTreadmillParts)
+	print("[CLIENT]   BLUE treadmills (x9): " .. #blueTreadmillParts)
+	print("[CLIENT]   PURPLE treadmills (x25): " .. #purpleTreadmillParts)
 
 	if #treadmillParts == 0 and #goldTreadmillParts == 0 and #blueTreadmillParts == 0 and #purpleTreadmillParts == 0 then
-		warn("[CLIENT] ⚠️ NO TREADMILLS FOUND! This will prevent treadmill detection from working!")
+		warn("[CLIENT] ⚠️ NO VALID TREADMILLS DETECTED!")
+		warn("[CLIENT] Possible causes:")
+		warn("[CLIENT]   1. TreadmillSetup.server.lua didn't run on server")
+		warn("[CLIENT]   2. Zones don't have Multiplier attribute")
+		warn("[CLIENT]   3. Workspace structure is different than expected")
+	else
+		print("[CLIENT] ✅ Treadmill detection successful!")
 	end
 end
+--]]
 
--- Chama a função de setup
-task.spawn(setupTreadmills)
+-- 🔄 PATCH 4: Detection desabilitada - Server-side via TreadmillService
+-- task.spawn(setupTreadmills)  -- DEPRECATED
+print("[CLIENT] 🔄 PATCH 4: Zone detection delegated to server (TreadmillService)")
 
 -- ✅ Varredura inicial para WinBlocks e StepAwards (evita perder objetos que já existem)
 task.spawn(function()
@@ -965,39 +965,19 @@ end)
 
 workspace.DescendantAdded:Connect(function(obj)
 	task.wait(0.1)
-	if obj.Name == "TreadmillZone" then
-		local parent = obj.Parent
+	if obj.Name == "TreadmillZone" and obj:IsA("BasePart") then
 		print("[CLIENT] Dynamically added TreadmillZone: " .. obj:GetFullName())
 
-		-- Determina qual part usar para detecção
-		local detectionPart = nil
-		if obj:IsA("BasePart") then
-			detectionPart = obj
-		elseif obj:IsA("Model") and obj.PrimaryPart then
-			detectionPart = obj.PrimaryPart
-		elseif obj:IsA("Model") then
-			for _, child in pairs(obj:GetDescendants()) do
-				if child:IsA("BasePart") then
-					detectionPart = child
-					break
-				end
-			end
-		end
+		-- ✅ LÊ ATTRIBUTES (novo sistema)
+		local multiplier = obj:GetAttribute("Multiplier")
+		print("[CLIENT]   Multiplier attribute: " .. tostring(multiplier))
 
-		if detectionPart then
-			if parent and string.find(parent.Name, "TreadmillPurple", 1, true) then
-				table.insert(purpleTreadmillParts, detectionPart)
-				print("[CLIENT] → Added to PURPLE treadmills (x25) dynamically")
-			elseif parent and string.find(parent.Name, "TreadmillBlue", 1, true) then
-				table.insert(blueTreadmillParts, detectionPart)
-				print("[CLIENT] → Added to BLUE treadmills (x9) dynamically")
-			elseif parent and (string.find(parent.Name, "TreadmillGold", 1, true) or string.find(parent.Name, "TreadmillPaid", 1, true)) then
-				table.insert(goldTreadmillParts, detectionPart)
-				print("[CLIENT] → Added to GOLD treadmills (x3) dynamically")
-			elseif parent and string.find(parent.Name, "TreadmillFree", 1, true) then
-				table.insert(treadmillParts, detectionPart)
-				print("[CLIENT] → Added to FREE treadmills (x1) dynamically")
-			end
+		if multiplier then
+			-- Adiciona à lista apropriada (com deduplicação)
+			addZoneToList(obj, multiplier)
+			print("[CLIENT]   → Added dynamically")
+		else
+			warn("[CLIENT]   → SKIPPED: Dynamic zone missing Multiplier attribute!")
 		end
 	elseif obj:IsA("BasePart") then
 		if string.match(obj.Name, "WinBlock") then

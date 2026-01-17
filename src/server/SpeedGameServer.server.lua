@@ -54,6 +54,15 @@ local TREADMILL_PRODUCT_TO_MULT = {
 	[TREADMILL_X25_PRODUCT_ID] = 25,
 }
 
+-- ✅ VALID MULTIPLIERS (para validação server-side)
+-- Protege contra exploits que enviam multipliers inválidos
+local VALID_MULTIPLIERS = {
+	[1] = true,   -- FREE treadmill
+	[3] = true,   -- GOLD treadmill
+	[9] = true,   -- BLUE treadmill
+	[25] = true,  -- PURPLE treadmill
+}
+
 -- ==================== DATASTORE2 ====================
 local DataStore2 = require(ServerScriptService:WaitForChild("DataStore2"))
 
@@ -282,6 +291,23 @@ local function onPlayerAdded(player)
 		player:SetAttribute("TreadmillX25Owned", true)
 		debugPrint("TREADMILL", player.Name .. " restored x25")
 	end
+
+	-- ✅ ENVIA SNAPSHOT COMPLETO DE OWNERSHIP AO CLIENT (evita race condition)
+	local ownershipSnapshot = {
+		[3] = data.TreadmillX3Owned or false,
+		[9] = data.TreadmillX9Owned or false,
+		[25] = data.TreadmillX25Owned or false,
+	}
+	debugPrint("TREADMILL", "Sending ownership snapshot to " .. player.Name .. ":")
+	debugPrint("TREADMILL", "  x3: " .. tostring(ownershipSnapshot[3]))
+	debugPrint("TREADMILL", "  x9: " .. tostring(ownershipSnapshot[9]))
+	debugPrint("TREADMILL", "  x25: " .. tostring(ownershipSnapshot[25]))
+
+	-- Envia após um pequeno delay para garantir que o client já conectou o listener
+	task.delay(0.5, function()
+		TreadmillOwnershipUpdated:FireClient(player, ownershipSnapshot)
+		debugPrint("TREADMILL", "Ownership snapshot sent to " .. player.Name)
+	end)
 
 	player:SetAttribute("OnTreadmill", false)
 	player:SetAttribute("TreadmillMultiplier", 1)
@@ -586,12 +612,57 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 end
 
 -- ==================== GAMEPLAY ====================
-UpdateSpeedEvent.OnServerEvent:Connect(function(player, steps, treadmillMultiplier)
+
+-- 🔄 PATCH 4: Server-authoritative treadmill detection
+-- Aguarda TreadmillService estar disponível
+local TreadmillService = nil
+local maxWaitTime = 10
+local waitedTime = 0
+while not TreadmillService and waitedTime < maxWaitTime do
+	TreadmillService = _G.TreadmillService
+	if not TreadmillService then
+		task.wait(0.5)
+		waitedTime = waitedTime + 0.5
+	end
+end
+
+if TreadmillService then
+	debugPrint("INIT", "✅ TreadmillService connected")
+else
+	warn("[SpeedGameServer] ⚠️ TreadmillService not found! Treadmill detection will not work.")
+end
+
+UpdateSpeedEvent.OnServerEvent:Connect(function(player, steps, clientMultiplier)
 	local data = PlayerData[player.UserId]
 	if not data then return end
 
 	steps = steps or 1
-	treadmillMultiplier = treadmillMultiplier or 0
+	clientMultiplier = clientMultiplier or nil  -- nil = novo protocolo, não enviou
+
+	-- 🔄 SERVER-AUTHORITATIVE: Usa TreadmillService como fonte da verdade
+	local treadmillMultiplier = 0
+	if TreadmillService then
+		treadmillMultiplier = TreadmillService.getPlayerMultiplier(player)
+	else
+		-- Fallback: usa multiplier do client (backward compatible)
+		treadmillMultiplier = clientMultiplier or 0
+		if clientMultiplier and clientMultiplier > 0 then
+			-- Valida multiplier enviado pelo client (security)
+			if not VALID_MULTIPLIERS[clientMultiplier] then
+				warn("[SECURITY] Player " .. player.Name .. " sent invalid multiplier: " .. clientMultiplier)
+				return
+			end
+		end
+	end
+
+	-- 🔍 DEBUG: Detecta se client enviou multiplier diferente do server
+	if clientMultiplier and clientMultiplier > 0 and TreadmillService then
+		if clientMultiplier ~= treadmillMultiplier then
+			warn("[MISMATCH] Client sent multiplier=" .. clientMultiplier .. " but server detected=" .. treadmillMultiplier)
+			warn("[MISMATCH]   Player: " .. player.Name .. " - Using server value (authoritative)")
+			-- Continua com valor do server (não bloqueia)
+		end
+	end
 
 	-- ✅ COOLDOWN: 0.4 segundos apenas para WALKING (fora da esteira)
 	local WALKING_COOLDOWN = 0.4
@@ -636,7 +707,7 @@ UpdateSpeedEvent.OnServerEvent:Connect(function(player, steps, treadmillMultipli
 		xpGain = steps * data.StepBonus * data.Multiplier * treadmillMultiplier
 		totalMultiplier = data.StepBonus * data.Multiplier * treadmillMultiplier
 		data.TreadmillMultiplier = treadmillMultiplier
-		player:SetAttribute("OnTreadmill", true)
+		-- OnTreadmill attribute já é setado pelo TreadmillService
 		debugPrint("XP_GAIN", "  ON TREADMILL: xpGain=" .. xpGain .. " totalMult=" .. totalMultiplier)
 	else
 		-- FORA DA ESTEIRA: aplica SpeedBoost EXPONENCIAL
@@ -644,7 +715,7 @@ UpdateSpeedEvent.OnServerEvent:Connect(function(player, steps, treadmillMultipli
 		xpGain = steps * data.StepBonus * data.Multiplier * speedBoostMultiplier
 		totalMultiplier = data.StepBonus * data.Multiplier * speedBoostMultiplier
 		data.TreadmillMultiplier = 1
-		player:SetAttribute("OnTreadmill", false)
+		-- OnTreadmill attribute já é setado pelo TreadmillService
 		debugPrint("XP_GAIN", "  WALKING: xpGain=" .. xpGain .. " totalMult=" .. totalMultiplier)
 	end
 
