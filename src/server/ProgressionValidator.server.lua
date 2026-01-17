@@ -8,8 +8,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 print("[PROGRESSION-TEST] ============================================")
 print("[PROGRESSION-TEST] Loading ProgressionMath module...")
 
-local ProgressionMath = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("ProgressionMath"))
-local ProgressionConfig = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("ProgressionConfig"))
+local ProgressionMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ProgressionMath"))
+local ProgressionConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ProgressionConfig"))
 
 print("[PROGRESSION-TEST] ✅ Modules loaded successfully!")
 print("[PROGRESSION-TEST] ============================================")

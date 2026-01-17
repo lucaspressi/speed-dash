@@ -65,7 +65,7 @@ local VALID_MULTIPLIERS = {
 
 -- ==================== MODULES ====================
 -- ✅ PATCH: Progression system now uses centralized ProgressionMath
-local ProgressionMath = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("ProgressionMath"))
+local ProgressionMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ProgressionMath"))
 
 -- ==================== DATASTORE2 ====================
 local DataStore2 = require(ServerScriptService:WaitForChild("DataStore2"))
@@ -92,21 +92,23 @@ local function getOrCreateRemote(name, className)
 	return remote
 end
 
+-- ✅ ALL REMOTES NOW USE getOrCreateRemote (no infinite yield)
 local AdminAdjustStat = getOrCreateRemote("AdminAdjustStat", "RemoteEvent")
+local UpdateSpeedEvent = getOrCreateRemote("UpdateSpeed", "RemoteEvent")
+local UpdateUIEvent = getOrCreateRemote("UpdateUI", "RemoteEvent")
+local RebirthEvent = getOrCreateRemote("Rebirth", "RemoteEvent")
+local EquipStepAwardEvent = getOrCreateRemote("EquipStepAward", "RemoteEvent")
+local VerifyGroupEvent = getOrCreateRemote("VerifyGroup", "RemoteEvent")
+local ClaimGiftEvent = getOrCreateRemote("ClaimGift", "RemoteEvent")
+local ShowWinEvent = getOrCreateRemote("ShowWin", "RemoteEvent")
+local TreadmillOwnershipUpdated = getOrCreateRemote("TreadmillOwnershipUpdated", "RemoteEvent")
 local PromptSpeedBoostEvent = getOrCreateRemote("PromptSpeedBoost", "RemoteEvent")
 local PromptWinsBoostEvent = getOrCreateRemote("PromptWinsBoost", "RemoteEvent")
 local Prompt100KSpeedEvent = getOrCreateRemote("Prompt100KSpeed", "RemoteEvent")
 local Prompt1MSpeedEvent = getOrCreateRemote("Prompt1MSpeed", "RemoteEvent")
 local Prompt10MSpeedEvent = getOrCreateRemote("Prompt10MSpeed", "RemoteEvent")
-local TreadmillOwnershipUpdated = getOrCreateRemote("TreadmillOwnershipUpdated", "RemoteEvent")
-
-local UpdateSpeedEvent = Remotes:WaitForChild("UpdateSpeed")
-local UpdateUIEvent = Remotes:WaitForChild("UpdateUI")
-local RebirthEvent = Remotes:WaitForChild("Rebirth")
-local EquipStepAwardEvent = Remotes:WaitForChild("EquipStepAward")
-local VerifyGroupEvent = Remotes:WaitForChild("VerifyGroup")
-local ClaimGiftEvent = Remotes:WaitForChild("ClaimGift")
-local ShowWinEvent = getOrCreateRemote("ShowWin", "RemoteEvent")
+local RebirthSuccessEvent = getOrCreateRemote("RebirthSuccess", "RemoteEvent")
+local AddWinEvent = getOrCreateRemote("AddWin", "RemoteEvent")
 
 -- ==================== VARIÁVEIS GLOBAIS ====================
 local PlayerData = {}
@@ -283,19 +285,15 @@ local function onPlayerAdded(player)
 	local data = getPlayerData(player)
 	PlayerData[player.UserId] = data
 
-	-- Restore treadmill ownership -> atributos
-	if data.TreadmillX3Owned then
-		player:SetAttribute("TreadmillX3Owned", true)
-		debugPrint("TREADMILL", player.Name .. " restored x3")
-	end
-	if data.TreadmillX9Owned then
-		player:SetAttribute("TreadmillX9Owned", true)
-		debugPrint("TREADMILL", player.Name .. " restored x9")
-	end
-	if data.TreadmillX25Owned then
-		player:SetAttribute("TreadmillX25Owned", true)
-		debugPrint("TREADMILL", player.Name .. " restored x25")
-	end
+	-- ✅ ALWAYS set treadmill ownership attributes (even if false, so client can check)
+	player:SetAttribute("TreadmillX3Owned", data.TreadmillX3Owned == true)
+	player:SetAttribute("TreadmillX9Owned", data.TreadmillX9Owned == true)
+	player:SetAttribute("TreadmillX25Owned", data.TreadmillX25Owned == true)
+
+	debugPrint("TREADMILL", player.Name .. " ownership attributes set:")
+	debugPrint("TREADMILL", "  x3: " .. tostring(data.TreadmillX3Owned == true))
+	debugPrint("TREADMILL", "  x9: " .. tostring(data.TreadmillX9Owned == true))
+	debugPrint("TREADMILL", "  x25: " .. tostring(data.TreadmillX25Owned == true))
 
 	-- ✅ ENVIA SNAPSHOT COMPLETO DE OWNERSHIP AO CLIENT (evita race condition)
 	local ownershipSnapshot = {

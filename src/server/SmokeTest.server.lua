@@ -27,21 +27,49 @@ local function test(name, condition, errorMsg)
 	end
 end
 
--- ==================== TEST 1: REMOTES EXIST ====================
+-- ==================== TEST 1: REMOTES & FOLDERS ====================
 print("")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("TEST CATEGORY: Remotes")
+print("TEST CATEGORY: ReplicatedStorage Structure")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
+-- Test Shared folder (case-sensitive!)
+local shared = ReplicatedStorage:FindFirstChild("Shared")
+test("Shared folder exists (CASE SENSITIVE)", shared ~= nil, "ReplicatedStorage.Shared not found - check case!")
+
+-- Test Remotes folder
 local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 test("Remotes folder exists", remotes ~= nil, "ReplicatedStorage.Remotes not found")
 
 if remotes then
+	-- Core gameplay remotes
 	test("UpdateSpeed RemoteEvent exists", remotes:FindFirstChild("UpdateSpeed") ~= nil)
 	test("UpdateUI RemoteEvent exists", remotes:FindFirstChild("UpdateUI") ~= nil)
-	test("TreadmillOwnershipUpdated RemoteEvent exists", remotes:FindFirstChild("TreadmillOwnershipUpdated") ~= nil)
 	test("AddWin RemoteEvent exists", remotes:FindFirstChild("AddWin") ~= nil)
-	test("EquipStepAward RemoteFunction exists", remotes:FindFirstChild("EquipStepAward") ~= nil)
+	test("EquipStepAward RemoteEvent exists", remotes:FindFirstChild("EquipStepAward") ~= nil)
+
+	-- Treadmill
+	test("TreadmillOwnershipUpdated RemoteEvent exists", remotes:FindFirstChild("TreadmillOwnershipUpdated") ~= nil)
+
+	-- Rebirth
+	test("Rebirth RemoteEvent exists", remotes:FindFirstChild("Rebirth") ~= nil)
+	test("RebirthSuccess RemoteEvent exists", remotes:FindFirstChild("RebirthSuccess") ~= nil)
+
+	-- Prompts/Purchases
+	test("PromptSpeedBoost RemoteEvent exists", remotes:FindFirstChild("PromptSpeedBoost") ~= nil)
+	test("PromptWinsBoost RemoteEvent exists", remotes:FindFirstChild("PromptWinsBoost") ~= nil)
+	test("Prompt100KSpeed RemoteEvent exists", remotes:FindFirstChild("Prompt100KSpeed") ~= nil)
+	test("Prompt1MSpeed RemoteEvent exists", remotes:FindFirstChild("Prompt1MSpeed") ~= nil)
+	test("Prompt10MSpeed RemoteEvent exists", remotes:FindFirstChild("Prompt10MSpeed") ~= nil)
+
+	-- Group/Gift
+	test("VerifyGroup RemoteEvent exists", remotes:FindFirstChild("VerifyGroup") ~= nil)
+	test("ClaimGift RemoteEvent exists", remotes:FindFirstChild("ClaimGift") ~= nil)
+
+	-- Visual feedback
+	test("ShowWin RemoteEvent exists", remotes:FindFirstChild("ShowWin") ~= nil)
+
+	print("  Total remotes checked: 16")
 end
 
 -- ==================== TEST 2: TREADMILL SERVICE ====================
@@ -136,7 +164,7 @@ print("━━━━━━━━━━━━━━━━━━━━━━━━�
 
 local ProgressionMath = nil
 pcall(function()
-	ProgressionMath = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("ProgressionMath"))
+	ProgressionMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ProgressionMath"))
 end)
 test("ProgressionMath module exists", ProgressionMath ~= nil)
 

@@ -13,6 +13,9 @@
     "ServerScriptService": {
       "$className": "ServerScriptService",
 
+      "RemotesBootstrap": {
+        "$path": "src/server/RemotesBootstrap.server.lua"
+      },
       "SpeedGameServer": {
         "$path": "src/server/SpeedGameServer.server.lua"
       },

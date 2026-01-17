@@ -145,8 +145,11 @@ function TreadmillRegistry.scanAndRegister()
 						validCount = validCount + 1
 						debugLog("Fallback: Registered " .. obj:GetFullName())
 					else
-						warn("[TreadmillRegistry] Invalid zone: " .. obj:GetFullName() .. " (" .. tostring(validationType) .. ")")
+						-- ✅ Reduced spam: Only log first 3 invalid zones, then summarize
 						invalidCount = invalidCount + 1
+						if invalidCount <= 3 then
+							warn("[TreadmillRegistry] Invalid zone: " .. obj:GetFullName() .. " (" .. tostring(validationType) .. ")")
+						end
 					end
 				end
 			end
@@ -158,6 +161,10 @@ function TreadmillRegistry.scanAndRegister()
 	debugLog("Valid: " .. validCount)
 	debugLog("Invalid: " .. invalidCount)
 	debugLog("Spatial grid cells: " .. TreadmillRegistry.getGridStats())
+
+	-- ✅ Summary warning if many invalid zones (legacy zones without proper config)
+	if invalidCount > 3 then
+		warn("[TreadmillRegistry] ⚠️ Found " .. invalidCount .. " invalid zones (first 3 logged above). These are likely legacy zones missing ProductId or Multiplier Attributes. Run TreadmillSetup to migrate them.")
 
 	isInitialized = true
 
