@@ -941,6 +941,23 @@ AdminAdjustStat.OnServerEvent:Connect(function(player, payload)
 		data.Level = math.clamp(tonumber(payload.value) or 1, 1, 3000)
 		data.XPRequired = getXPForLevel(data.Level)
 		updateWalkSpeed(player, data)
+
+	elseif action == "reset_player" then
+		-- Reset to default values
+		for key, value in pairs(DEFAULT_DATA) do
+			data[key] = value
+		end
+		data.XPRequired = getXPForLevel(data.Level)
+
+		-- Reset attributes
+		player:SetAttribute("TreadmillX3Owned", false)
+		player:SetAttribute("TreadmillX9Owned", false)
+		player:SetAttribute("TreadmillX25Owned", false)
+		player:SetAttribute("OnTreadmill", false)
+		player:SetAttribute("TreadmillMultiplier", 1)
+
+		updateWalkSpeed(player, data)
+		debugPrint("ADMIN", player.Name .. " data reset by admin")
 	end
 
 	UpdateUIEvent:FireClient(player, data)
