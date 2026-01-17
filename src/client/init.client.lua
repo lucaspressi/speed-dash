@@ -89,11 +89,11 @@ TreadmillOwnershipUpdated.OnClientEvent:Connect(function(multiplierOrSnapshot, o
 		-- Formato: snapshot completo (usado no join)
 		print("[CLIENT] TreadmillOwnershipUpdated received SNAPSHOT:")
 		for mult, isOwned in pairs(multiplierOrSnapshot) do
-			print("[CLIENT]   x" .. mult .. " = " .. tostring(isOwned))
+			print("[CLIENT]   x" .. tostring(mult) .. " = " .. tostring(isOwned))
 			treadmillOwnershipCache[mult] = isOwned
 
 			-- Atualiza atributo do player (sincronização)
-			local key = "TreadmillX" .. mult .. "Owned"
+			local key = "TreadmillX" .. tostring(mult) .. "Owned"
 			player:SetAttribute(key, isOwned)
 		end
 		print("[CLIENT] Ownership cache fully updated from snapshot!")
@@ -101,14 +101,14 @@ TreadmillOwnershipUpdated.OnClientEvent:Connect(function(multiplierOrSnapshot, o
 	else
 		-- Formato: update individual (usado após compra)
 		local multiplier = multiplierOrSnapshot
-		print("[CLIENT] TreadmillOwnershipUpdated received: x" .. multiplier .. " = " .. tostring(owned))
+		print("[CLIENT] TreadmillOwnershipUpdated received: x" .. tostring(multiplier) .. " = " .. tostring(owned))
 		treadmillOwnershipCache[multiplier] = owned
 
 		-- Atualiza o atributo local também (redundante mas garante sincronização)
-		local key = "TreadmillX" .. multiplier .. "Owned"
+		local key = "TreadmillX" .. tostring(multiplier) .. "Owned"
 		player:SetAttribute(key, owned)
 
-		print("[CLIENT] Ownership cache updated. Can now use x" .. multiplier .. " treadmill!")
+		print("[CLIENT] Ownership cache updated. Can now use x" .. tostring(multiplier) .. " treadmill!")
 	end
 end)
 
@@ -736,7 +736,7 @@ RunService.Heartbeat:Connect(function(dt)
 					end
 
 					if productId then
-						print("[CLIENT] Prompting purchase for Treadmill x" .. serverMultiplier)
+						print("[CLIENT] Prompting purchase for Treadmill x" .. tostring(serverMultiplier))
 						MarketplaceService:PromptProductPurchase(player, productId)
 					end
 
