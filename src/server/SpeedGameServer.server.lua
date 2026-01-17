@@ -115,6 +115,10 @@ local AddWinEvent = getOrCreateRemote("AddWin", "RemoteEvent")
 local PlayerData = {}
 local PlayerDataDirty = {} -- 🔧 DEBOUNCE: Track which players need DataStore save
 local TreadmillCooldowns = {} -- Per-player cooldown tracking (UserId -> timestamp)
+
+-- 🔧 Expose for Command Bar admin tools (like RESET_PLAYER.lua)
+_G.SpeedGame_PlayerData = PlayerData
+_G.SpeedGame_DEFAULT_DATA = nil -- Will be set after DEFAULT_DATA is defined
 local VisualEffectCooldowns = {} -- Per-player cooldown for +XP visual effect (UserId -> timestamp)
 
 local spawnLocation = workspace:FindFirstChild("SpawnLocation", true)
@@ -183,6 +187,9 @@ local DEFAULT_DATA = {
 	Restricted = false,
 	RestrictionReason = nil,
 }
+
+-- 🔧 Expose for Command Bar admin tools
+_G.SpeedGame_DEFAULT_DATA = DEFAULT_DATA
 
 local function getStores(player)
 	return {
