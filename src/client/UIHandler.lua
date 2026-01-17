@@ -70,6 +70,18 @@ local boost1Button = nil
 local boost2Button = nil
 local boost3Button = nil
 
+-- Lista de possíveis nomes para os botões de gamepass
+local speedBoostButtonNames = {"GamepassButton", "SpeedBoostButton", "SpeedBoost", "BoostSpeed"}
+local winsBoostButtonNames = {"GamepassButton2", "WinsBoostButton", "WinsBoost", "BoostWins"}
+
+print("[UIHandler] 🔍 Searching for buttons in SpeedGameUI...")
+print("[UIHandler] 📋 All descendants:")
+for _, child in pairs(speedGameUI:GetDescendants()) do
+	if child:IsA("TextButton") or child:IsA("ImageButton") then
+		print("[UIHandler]   → " .. child.Name .. " (" .. child.ClassName .. ") at " .. child:GetFullName())
+	end
+end
+
 for _, child in pairs(speedGameUI:GetDescendants()) do
 	if child.Name == "RebirthButton" and child:IsA("TextButton") then
 		rebirthButton = child
@@ -77,16 +89,18 @@ for _, child in pairs(speedGameUI:GetDescendants()) do
 	elseif child.Name == "FreeButton" and child:IsA("TextButton") then
 		freeButton = child
 		print("[UIHandler] ✅ Found FreeButton")
-	elseif child.Name == "GamepassButton" and (child:IsA("TextButton") or child:IsA("ImageButton")) then
+	elseif table.find(speedBoostButtonNames, child.Name) and (child:IsA("TextButton") or child:IsA("ImageButton")) then
 		gamepassButton = child
-		print("[UIHandler] ✅ Found GamepassButton: " .. child:GetFullName())
+		print("[UIHandler] ✅ Found Speed Boost Button: " .. child.Name .. " at " .. child:GetFullName())
 		print("[UIHandler]   → Type: " .. child.ClassName)
 		print("[UIHandler]   → Active: " .. tostring(child.Active))
-	elseif child.Name == "GamepassButton2" and (child:IsA("TextButton") or child:IsA("ImageButton")) then
+		print("[UIHandler]   → Visible: " .. tostring(child.Visible))
+	elseif table.find(winsBoostButtonNames, child.Name) and (child:IsA("TextButton") or child:IsA("ImageButton")) then
 		gamepassButton2 = child
-		print("[UIHandler] ✅ Found GamepassButton2: " .. child:GetFullName())
+		print("[UIHandler] ✅ Found Wins Boost Button: " .. child.Name .. " at " .. child:GetFullName())
 		print("[UIHandler]   → Type: " .. child.ClassName)
 		print("[UIHandler]   → Active: " .. tostring(child.Active))
+		print("[UIHandler]   → Visible: " .. tostring(child.Visible))
 	elseif child.Name == "Boost1" and (child:IsA("TextButton") or child:IsA("ImageButton")) then
 		boost1Button = child
 		print("[UIHandler] ✅ Found Boost1")
@@ -100,8 +114,8 @@ for _, child in pairs(speedGameUI:GetDescendants()) do
 end
 
 print("[UIHandler] ====== Button Detection Summary ======")
-print("[UIHandler] GamepassButton: " .. tostring(gamepassButton ~= nil))
-print("[UIHandler] GamepassButton2: " .. tostring(gamepassButton2 ~= nil))
+print("[UIHandler] Speed Boost Button (gamepassButton): " .. tostring(gamepassButton ~= nil))
+print("[UIHandler] Wins Boost Button (gamepassButton2): " .. tostring(gamepassButton2 ~= nil))
 print("[UIHandler] =======================================")
 
 local currentData = {Level = 1, XP = 0, XPRequired = 100, TotalXP = 0, Wins = 0, Rebirths = 0, Multiplier = 1}
@@ -382,23 +396,31 @@ for _, child in pairs(winsFrame:GetDescendants()) do
 end
 
 if gamepassButton then
-	print("[UIHandler] 🔗 Connecting GamepassButton click handler")
+	print("[UIHandler] 🔗 Connecting Speed Boost Button click handler")
 	gamepassButton.MouseButton1Click:Connect(function()
-		print("[UIHandler] 🎯 GamepassButton clicked! Firing PromptSpeedBoostEvent...")
+		print("[UIHandler] 🎯 Speed Boost Button clicked! Firing PromptSpeedBoostEvent...")
 		PromptSpeedBoostEvent:FireServer()
 	end)
+	print("[UIHandler] ✅ Speed Boost Button handler connected successfully!")
 else
-	warn("[UIHandler] ⚠️ GamepassButton not found - cannot connect click handler!")
+	warn("[UIHandler] ❌ SPEED BOOST BUTTON NOT FOUND!")
+	warn("[UIHandler] Expected button names: GamepassButton, SpeedBoostButton, SpeedBoost, or BoostSpeed")
+	warn("[UIHandler] Please check Roblox Studio: PlayerGui > SpeedGameUI")
+	warn("[UIHandler] Make sure the button exists and is a TextButton or ImageButton")
 end
 
 if gamepassButton2 then
-	print("[UIHandler] 🔗 Connecting GamepassButton2 click handler")
+	print("[UIHandler] 🔗 Connecting Wins Boost Button click handler")
 	gamepassButton2.MouseButton1Click:Connect(function()
-		print("[UIHandler] 🎯 GamepassButton2 clicked! Firing PromptWinsBoostEvent...")
+		print("[UIHandler] 🎯 Wins Boost Button clicked! Firing PromptWinsBoostEvent...")
 		PromptWinsBoostEvent:FireServer()
 	end)
+	print("[UIHandler] ✅ Wins Boost Button handler connected successfully!")
 else
-	warn("[UIHandler] ⚠️ GamepassButton2 not found - cannot connect click handler!")
+	warn("[UIHandler] ❌ WINS BOOST BUTTON NOT FOUND!")
+	warn("[UIHandler] Expected button names: GamepassButton2, WinsBoostButton, WinsBoost, or BoostWins")
+	warn("[UIHandler] Please check Roblox Studio: PlayerGui > SpeedGameUI")
+	warn("[UIHandler] Make sure the button exists and is a TextButton or ImageButton")
 end
 
 if boost1Button then
