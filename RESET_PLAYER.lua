@@ -9,7 +9,7 @@
 -- ==================== COPY FROM HERE ====================
 local playerName = "Xxpress1xX"
 local Players = game:GetService("Players")
-local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players:FindFirstChild(playerName)
 if not player then
@@ -21,60 +21,32 @@ if not player then
     return
 end
 
--- Access SpeedGameServer directly (server-side)
-local SpeedGameServer = ServerScriptService:FindFirstChild("SpeedGameServer")
-if not SpeedGameServer then
-    warn("❌ SpeedGameServer not found")
+-- Get RemoteEvent
+local Remotes = ReplicatedStorage:FindFirstChild("Remotes")
+if not Remotes then
+    warn("❌ Remotes folder not found!")
+    warn("Make sure the game is running (F5)")
     return
 end
 
--- Get player data (assuming it's stored in a global or module)
-local PlayerData = _G.PlayerData or {}
-local data = PlayerData[player.UserId]
-
-if not data then
-    warn("❌ Player data not found for: " .. playerName)
+local AdminAdjustStat = Remotes:FindFirstChild("AdminAdjustStat")
+if not AdminAdjustStat then
+    warn("❌ AdminAdjustStat RemoteEvent not found!")
     return
 end
 
--- Default values
-local DEFAULT_DATA = {
-    Level = 1,
-    XP = 0,
-    TotalXP = 0,
-    Wins = 0,
-    Rebirths = 0,
-    Multiplier = 1,
-    StepBonus = 1,
-    GiftClaimed = false,
-    TreadmillX3Owned = false,
-    TreadmillX9Owned = false,
-    TreadmillX25Owned = false,
-    SpeedBoostLevel = 0,
-    WinBoostLevel = 0,
-}
+-- Send reset command from player's client
+-- This will trigger the server-side reset logic
+AdminAdjustStat:FireServer({
+    action = "reset_player"
+})
 
--- Reset data
-for key, value in pairs(DEFAULT_DATA) do
-    data[key] = value
-end
-
--- Reset attributes
-player:SetAttribute("TreadmillX3Owned", false)
-player:SetAttribute("TreadmillX9Owned", false)
-player:SetAttribute("TreadmillX25Owned", false)
-player:SetAttribute("OnTreadmill", false)
-player:SetAttribute("TreadmillMultiplier", 1)
-
--- Update leaderstats
-local leaderstats = player:FindFirstChild("leaderstats")
-if leaderstats then
-    local speedStat = leaderstats:FindFirstChild("Speed")
-    local winsStat = leaderstats:FindFirstChild("Wins")
-    if speedStat then speedStat.Value = 0 end
-    if winsStat then winsStat.Value = 0 end
-end
-
-print("✅ Successfully reset " .. playerName .. " to default values!")
-print("  Level: 1, XP: 0, Wins: 0, Rebirths: 0")
+print("✅ Reset command sent for: " .. playerName)
+print("⏳ Waiting for server to process...")
+task.wait(1)
+print("✅ Player should now be reset to default values!")
+print("   Level: 1, XP: 0, Wins: 0, Rebirths: 0")
+print("")
+print("💡 TIP: If nothing happens, make sure you're an admin!")
+print("   Admin User IDs are defined in SpeedGameServer.server.lua")
 -- ==================== COPY UNTIL HERE ====================
