@@ -196,8 +196,25 @@ backgroundMusic.SoundId = "rbxassetid://1837879082"  -- Música calma/chill
 backgroundMusic.Volume = 0.3  -- Volume moderado para não ser intrusivo
 backgroundMusic.Looped = true  -- Loop infinito
 backgroundMusic.Parent = soundFolder
-backgroundMusic:Play()  -- Inicia automaticamente
-print("[CLIENT] Background music started!")
+print("[CLIENT] 🎵 Background music created: " .. backgroundMusic.SoundId)
+
+-- ✅ Aguarda carregar e depois toca
+task.spawn(function()
+	print("[CLIENT] ⏳ Waiting for background music to load...")
+
+	local success, err = pcall(function()
+		if not backgroundMusic.IsLoaded then
+			backgroundMusic.Loaded:Wait()
+		end
+		backgroundMusic:Play()
+	end)
+
+	if success then
+		print("[CLIENT] ✅ Background music playing!")
+	else
+		warn("[CLIENT] ❌ Failed to play music: " .. tostring(err))
+	end
+end)
 
 -- 💀 SOM DE MORTE PELO NPC (MEME BRAINROT)
 local npcKillSound = Instance.new("Sound")
@@ -205,6 +222,7 @@ npcKillSound.Name = "NpcKill"
 npcKillSound.SoundId = "rbxassetid://6308706396"  -- Vine Boom (meme)
 npcKillSound.Volume = 1
 npcKillSound.Parent = soundFolder
+print("[CLIENT] 🔊 NPC kill sound created: " .. npcKillSound.SoundId)
 
 -- 💀 OUTROS SONS DE MEME DISPONÍVEIS:
 -- Skull emoji (tuntuntun): rbxassetid://12221967
@@ -213,6 +231,22 @@ npcKillSound.Parent = soundFolder
 -- Windows Error: rbxassetid://160715357
 -- Emotional Damage: rbxassetid://8578656799
 -- Oof: rbxassetid://6955867
+
+-- ✅ Aguarda o som carregar
+task.spawn(function()
+	print("[CLIENT] ⏳ Waiting for NPC kill sound to load...")
+	local success, err = pcall(function()
+		if not npcKillSound.IsLoaded then
+			npcKillSound.Loaded:Wait()
+		end
+	end)
+
+	if success then
+		print("[CLIENT] ✅ NPC kill sound loaded successfully!")
+	else
+		warn("[CLIENT] ⚠️ NPC kill sound load warning: " .. tostring(err))
+	end
+end)
 
 -- ✅ FUNÇÃO PARA CALCULAR MULTIPLICADOR
 local function getSpeedBoostMultiplier(level)
@@ -1023,8 +1057,17 @@ end)
 -- 💀 SOM QUANDO NPC MATA O PLAYER
 local NpcKillPlayerEvent = Remotes:WaitForChild("NpcKillPlayer")
 NpcKillPlayerEvent.OnClientEvent:Connect(function()
-	print("[CLIENT] NPC killed player - playing death sound!")
-	npcKillSound:Play()
+	print("[CLIENT] 💀 NPC KILLED PLAYER EVENT RECEIVED!")
+
+	local soundSuccess, soundErr = pcall(function()
+		npcKillSound:Play()
+	end)
+
+	if soundSuccess then
+		print("[CLIENT] ✅ Vine Boom played!")
+	else
+		warn("[CLIENT] ❌ Failed to play Vine Boom: " .. tostring(soundErr))
+	end
 end)
 
 -- 🎨 EFEITO VISUAL QUANDO LASER DEIXA PLAYER LENTO

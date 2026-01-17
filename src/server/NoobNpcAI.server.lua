@@ -351,35 +351,56 @@ end
 -- DANCE (após kill)
 -- =========================
 local function doVictoryTaunt()
-	if isTaunting then return end
+	if isTaunting then
+		print("[NoobAI] ⚠️ Already taunting, skipping...")
+		return
+	end
 
 	isTaunting = true
+	print("[NoobAI] 💃 STARTING VICTORY TAUNT!")
 
-	local randomDanceId = DANCE_ANIMATIONS[math.random(1, #DANCE_ANIMATIONS)]
-	print("[NoobAI] 💃 VICTORY TAUNT! Dance: " .. randomDanceId)
+	-- Para tudo primeiro
+	stopWalking()
+	stopMeditating()
+	humanoid:MoveTo(hrp.Position)
+	humanoid.WalkSpeed = 0  -- ✅ Congela completamente
 
+	-- Escolhe dança aleatória
+	local randomIndex = math.random(1, #DANCE_ANIMATIONS)
+	local randomDanceId = DANCE_ANIMATIONS[randomIndex]
+	print("[NoobAI] 💃 Dance #" .. randomIndex .. ": " .. randomDanceId)
+
+	-- Cria e carrega animação
 	local danceAnim = Instance.new("Animation")
 	danceAnim.AnimationId = randomDanceId
 
 	if currentDanceTrack then
 		currentDanceTrack:Stop()
+		currentDanceTrack:Destroy()
 	end
 
-	currentDanceTrack = animator:LoadAnimation(danceAnim)
-	currentDanceTrack.Looped = false
-	currentDanceTrack.Priority = Enum.AnimationPriority.Action
+	local success, err = pcall(function()
+		currentDanceTrack = animator:LoadAnimation(danceAnim)
+		currentDanceTrack.Looped = false
+		currentDanceTrack.Priority = Enum.AnimationPriority.Action4
+		currentDanceTrack:Play()
+		print("[NoobAI] ✅ Dance animation playing!")
+	end)
 
-	stopWalking()
-	stopMeditating()
-	humanoid:MoveTo(hrp.Position)
-	currentDanceTrack:Play()
+	if not success then
+		warn("[NoobAI] ❌ Failed to play dance: " .. tostring(err))
+	end
 
+	-- Volta ao normal após duração
 	task.delay(TAUNT_DURATION, function()
+		print("[NoobAI] 💃 Taunt finished! Returning to normal...")
+
 		if currentDanceTrack then
 			currentDanceTrack:Stop()
 		end
+
+		humanoid.WalkSpeed = CHASE_SPEED  -- ✅ Restaura velocidade
 		isTaunting = false
-		print("[NoobAI] Taunt finished!")
 	end)
 end
 
@@ -417,15 +438,22 @@ end
 local function returnToCenter()
 	local dist = (hrp.Position - centerPosition).Magnitude
 
-	if dist > 5 then
+	if dist > 10 then  -- ✅ Aumentei de 5 para 10 (zona morta maior)
 		stopMeditating()
 		humanoid.WalkSpeed = RETURN_SPEED
 		humanoid:MoveTo(centerPosition)
 		startWalking()
 	else
-		humanoid:MoveTo(hrp.Position)
-		stopWalking()
-		startMeditating()  -- 🧘 Medita quando chega no centro
+		-- ✅ Só para de andar se estava andando
+		if isWalking then
+			humanoid:MoveTo(hrp.Position)
+			stopWalking()
+		end
+
+		-- ✅ Só inicia meditação se NÃO está meditando
+		if not isMeditating then
+			startMeditating()
+		end
 	end
 end
 
