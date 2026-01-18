@@ -195,6 +195,21 @@
           "Duration": 0,
           "Neutral": true
         }
+      },
+
+      "NoobArena": {
+        "$className": "Model",
+        "ArenaBounds": {
+          "$className": "Part",
+          "$properties": {
+            "Anchored": true,
+            "CanCollide": false,
+            "Color": [1, 0, 0],
+            "Position": [0, 20, 100],
+            "Size": [80, 40, 80],
+            "Transparency": 0.8
+          }
+        }
       }
     },
 

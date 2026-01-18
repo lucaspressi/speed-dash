@@ -60,20 +60,42 @@ end
 -- =========================
 -- ARENA PART
 -- =========================
+-- NoobArena is a Model containing ArenaBounds (Part)
+-- ⚠️ IMPORTANT: This is managed by Rojo (default.project.json)
+-- Do NOT rename in Studio - changes must be made in the repo!
 local arenaModel = workspace:WaitForChild("NoobArena", 5)
+if not arenaModel then
+	warn("[NoobAI] ❌ 'NoobArena' Model not found in Workspace!")
+	warn("[NoobAI] This should be managed by Rojo in default.project.json")
+	warn("[NoobAI] Do NOT create manually in Studio - edit the project file instead")
+	return
+end
+
+print("[NoobAI] ✅ Found NoobArena model (ClassName: " .. arenaModel.ClassName .. ")")
+
+-- Find ArenaBounds Part inside the model (wait to avoid Rojo timing issues)
 local arena = arenaModel:WaitForChild("ArenaBounds", 5)
+
 if not arena or not arena:IsA("BasePart") then
-	warn("[NoobAI] ❌ 'NoobArena' Part not found in Workspace!")
-	warn("[NoobAI] Create a Part named 'NoobArena' to define where NPC operates.")
-	warn("[NoobAI] Properties: Anchored=true, CanCollide=false, Transparency=0.8")
+	warn("[NoobAI] ❌ 'ArenaBounds' Part not found inside NoobArena Model!")
+	warn("[NoobAI] NoobArena ClassName: " .. arenaModel.ClassName)
+	warn("[NoobAI] Children found in NoobArena:")
+	for _, child in ipairs(arenaModel:GetChildren()) do
+		warn("[NoobAI]   - " .. child.Name .. " (" .. child.ClassName .. ")")
+	end
+	warn("[NoobAI] Edit default.project.json (or source files) to add ArenaBounds Part inside NoobArena Model")
 	return
 end
 
 local arenaCenter = arena.Position
 local arenaSize = arena.Size
 
-print("[NoobAI] ✅ Arena found at: " .. tostring(arenaCenter))
+print("[NoobAI] ✅ Arena bounds found at: " .. tostring(arenaCenter))
 print("[NoobAI] ✅ Arena size: " .. tostring(arenaSize))
+
+-- Set diagnostic attributes (for DiagnosticClient)
+workspace:SetAttribute("NoobNpcAI_Running", true)
+workspace:SetAttribute("NoobNpcAI_ArenaPart", arena:GetFullName())
 
 -- =========================
 -- CONFIGURATION
