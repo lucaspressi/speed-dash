@@ -135,11 +135,11 @@ if math.abs(rotation.X) > 1 or math.abs(rotation.Y) > 1 or math.abs(rotation.Z) 
 end
 
 -- CRITICAL: Validate arena configuration
-warn("[NoobAI] ⚠️ EXPECTED arena from Rojo: Position=[0, 20, 100], Size=[80, 40, 80]")
+warn("[NoobAI] ⚠️ EXPECTED arena from Rojo: Position=[0, 7, 513], Size=[80, 40, 80]")
 warn("[NoobAI] ⚠️ ACTUAL arena found: Position=" .. tostring(arenaCenter) .. ", Size=" .. tostring(arenaSize))
 
 -- Check if arena matches expected values from default.project.json
-local expectedCenter = Vector3.new(0, 20, 100)
+local expectedCenter = Vector3.new(0, 7, 513)
 local expectedSize = Vector3.new(80, 40, 80)
 local centerDiff = (arenaCenter - expectedCenter).Magnitude
 local sizeDiff = (arenaSize - expectedSize).Magnitude

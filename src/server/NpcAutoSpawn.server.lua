@@ -33,11 +33,11 @@ if arena then
 		npc:MoveTo(spawnPos)
 		print("[NpcAutoSpawn] ✅ NPC spawned at arena: " .. tostring(spawnPos))
 	else
-		npc:MoveTo(Vector3.new(0, 30, 100))
+		npc:MoveTo(Vector3.new(0, 30, 513))
 		print("[NpcAutoSpawn] ⚠️ Arena bounds not found, spawned at default")
 	end
 else
-	npc:MoveTo(Vector3.new(0, 30, 100))
+	npc:MoveTo(Vector3.new(0, 30, 513))
 	print("[NpcAutoSpawn] ⚠️ Arena not found, spawned at default")
 end
 
