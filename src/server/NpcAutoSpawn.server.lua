@@ -1,6 +1,12 @@
 -- NpcAutoSpawn.server.lua
 -- Automatically creates "Buff Noob" NPC if it doesn't exist
 -- This ensures NoobNpcAI can always find the NPC
+--
+-- HOW TO USE CUSTOM NPC:
+-- 1. Insert your custom R15 character model in Workspace
+-- 2. Rename it to "Buff Noob"
+-- 3. Make sure it has a Humanoid and HumanoidRootPart
+-- 4. This script will skip auto-creation and use your custom model
 
 local InsertService = game:GetService("InsertService")
 
@@ -8,11 +14,11 @@ print("[NpcAutoSpawn] Checking if Buff Noob exists...")
 
 local existingNpc = workspace:FindFirstChild("Buff Noob")
 if existingNpc then
-	print("[NpcAutoSpawn] ✅ Buff Noob already exists")
+	print("[NpcAutoSpawn] ✅ Buff Noob already exists (custom model)")
 	return
 end
 
-print("[NpcAutoSpawn] 🔄 Buff Noob not found - creating NPC...")
+print("[NpcAutoSpawn] 🔄 Buff Noob not found - creating default R15 NPC...")
 
 -- Create a basic NPC using Roblox's default character
 local npc = game:GetService("Players"):CreateHumanoidModelFromDescription(
