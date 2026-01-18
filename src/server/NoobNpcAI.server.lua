@@ -247,9 +247,15 @@ end
 local function startMeditating()
 	if not isMeditating and not isTaunting and not isWalking then
 		print("[NoobAI] 🧘 Starting meditation...")
-		meditateTrack:Play()
+		if meditateTrack and meditateTrack.Length > 0 then
+			meditateTrack:Play()
+		end
 		isMeditating = true
 		humanoid:MoveTo(hrp.Position)
+	elseif isMeditating and meditateTrack and not meditateTrack.IsPlaying then
+		-- Fix: Se meditation track parou mas flag ainda está true, reinicia
+		print("[NoobAI] 🔄 Meditation track stopped, restarting...")
+		meditateTrack:Play()
 	end
 end
 

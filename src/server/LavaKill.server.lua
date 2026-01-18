@@ -37,6 +37,13 @@ local function setupKillTouch(part)
     end
     part:SetAttribute("KillSetup", true)
 
+    -- CRITICAL: Force CanCollide = true so Touched events will fire
+    -- Parts with CanCollide = false never trigger Touched events in Roblox
+    if not part.CanCollide then
+        part.CanCollide = true
+        debugLog("⚠️ Enabled CanCollide on: " .. part:GetFullName())
+    end
+
     part.Touched:Connect(function(hit)
         local character = hit.Parent
         local player = Players:GetPlayerFromCharacter(character)
