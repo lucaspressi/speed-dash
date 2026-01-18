@@ -1,13 +1,14 @@
 -- NoobNpcAI.server.lua
--- Refactored with simple state machine and arena-based movement
+-- COMPLETE REWRITE: Fixed all movement blocking issues
 -- Boss NPC that chases players, shoots slow laser, and taunts after kills
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local PathfindingService = game:GetService("PathfindingService")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-print("[NoobAI] 🚀 Initializing...")
+print("[NoobAI] 🚀 Initializing (REWRITTEN VERSION)...")
 
 -- =========================
 -- SERVICES & REMOTES
@@ -19,6 +20,8 @@ local NpcLaserSlowEffect = Remotes:WaitForChild("NpcLaserSlowEffect")
 -- =========================
 -- NPC MODEL
 -- =========================
+task.wait(2) -- Safety delay
+
 local noob = workspace:WaitForChild("Buff Noob", 5)
 if not noob then
 	warn("[NoobAI] ❌ 'Buff Noob' NPC not found in Workspace. Script disabled.")
@@ -37,56 +40,80 @@ end
 print("[NoobAI] ✅ Found NPC and parts")
 
 -- =========================
--- DEBUG: Check NPC Configuration (kept from HEAD)
+-- CRITICAL: FIX ALL MOVEMENT BLOCKERS
 -- =========================
-print("[NoobAI] 🔍 NPC Configuration:")
-print("[NoobAI]   Humanoid.Health = " .. humanoid.Health .. "/" .. humanoid.MaxHealth)
-print("[NoobAI]   Humanoid.WalkSpeed = " .. humanoid.WalkSpeed .. " (RESETTING to 16)")
-print("[NoobAI]   HumanoidRootPart.Anchored = " .. tostring(hrp.Anchored))
-print("[NoobAI]   HumanoidRootPart.Position = " .. tostring(hrp.Position))
+print("[NoobAI] 🔧 Fixing all potential movement blockers...")
 
--- Reset WalkSpeed to normal
-humanoid.WalkSpeed = 16
-
--- ⚠️ CRITICAL: HumanoidRootPart CANNOT be anchored or NPC won't move!
-if hrp.Anchored then
-	warn("[NoobAI] ⚠️ WARNING: HumanoidRootPart is ANCHORED! Unanchoring...")
-	hrp.Anchored = false
+-- 1. Unanchor ALL parts (not just HRP)
+for _, part in pairs(noob:GetDescendants()) do
+	if part:IsA("BasePart") then
+		if part.Anchored and part ~= hrp then
+			warn("[NoobAI] ⚠️ Found anchored part: " .. part.Name .. " - UNANCHORING")
+			part.Anchored = false
+		end
+	end
 end
 
--- Ensure humanoid is alive
+-- 2. Force HRP unanchored
+hrp.Anchored = false
+print("[NoobAI] ✅ HumanoidRootPart.Anchored = " .. tostring(hrp.Anchored))
+
+-- 3. Fix Humanoid states
+humanoid.PlatformStand = false
+humanoid.Sit = false
+print("[NoobAI] ✅ PlatformStand = false, Sit = false")
+
+-- 4. Restore health if dead
 if humanoid.Health <= 0 then
-	warn("[NoobAI] ❌ Humanoid is DEAD! Restoring health...")
+	warn("[NoobAI] ⚠️ Humanoid was DEAD! Restoring health...")
 	humanoid.Health = humanoid.MaxHealth
 end
 
+-- 5. Set proper WalkSpeed
+humanoid.WalkSpeed = 16
+humanoid.JumpPower = 0 -- No jumping for NPC
+print("[NoobAI] ✅ WalkSpeed = 16, JumpPower = 0")
+
+-- 6. Remove any BodyMovers that might exist
+for _, child in pairs(hrp:GetChildren()) do
+	if child:IsA("BodyMover") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") then
+		warn("[NoobAI] ⚠️ Found BodyMover: " .. child.ClassName .. " - DESTROYING")
+		child:Destroy()
+	end
+end
+
+print("[NoobAI] 🔍 Initial Configuration:")
+print("[NoobAI]   Health: " .. humanoid.Health .. "/" .. humanoid.MaxHealth)
+print("[NoobAI]   Position: " .. tostring(hrp.Position))
+print("[NoobAI]   WalkSpeed: " .. humanoid.WalkSpeed)
+
 -- =========================
--- ARENA PART
+-- ARENA CONFIGURATION
 -- =========================
--- NoobArena is a Model containing ArenaBounds (Part)
--- ⚠️ IMPORTANT: This is managed by Rojo (default.project.json)
--- Do NOT rename in Studio - changes must be made in the repo!
 local arenaModel = workspace:WaitForChild("NoobArena", 5)
 if not arenaModel then
-	warn("[NoobAI] ❌ 'NoobArena' Model not found in Workspace!")
-	warn("[NoobAI] This should be managed by Rojo in default.project.json")
-	warn("[NoobAI] Do NOT create manually in Studio - edit the project file instead")
+	warn("[NoobAI] ❌ 'NoobArena' Model not found! Script disabled.")
+	warn("[NoobAI] Make sure default.project.json defines NoobArena")
+	return
+end
+
+if arenaModel.ClassName ~= "Model" then
+	warn("[NoobAI] ❌ 'NoobArena' is " .. arenaModel.ClassName .. " but should be Model!")
 	return
 end
 
 print("[NoobAI] ✅ Found NoobArena model (ClassName: " .. arenaModel.ClassName .. ")")
 
--- Find ArenaBounds Part inside the model (wait to avoid Rojo timing issues)
-local arena = arenaModel:WaitForChild("ArenaBounds", 5)
-
+local arena = arenaModel:FindFirstChild("ArenaBounds")
 if not arena or not arena:IsA("BasePart") then
 	warn("[NoobAI] ❌ 'ArenaBounds' Part not found inside NoobArena Model!")
-	warn("[NoobAI] NoobArena ClassName: " .. arenaModel.ClassName)
-	warn("[NoobAI] Children found in NoobArena:")
-	for _, child in ipairs(arenaModel:GetChildren()) do
-		warn("[NoobAI]   - " .. child.Name .. " (" .. child.ClassName .. ")")
+	warn("[NoobAI] This should be managed by Rojo in default.project.json")
+	if arenaModel:GetChildren() then
+		warn("[NoobAI] Children found in NoobArena:")
+		for _, child in pairs(arenaModel:GetChildren()) do
+			warn("[NoobAI]   - " .. child.Name .. " (" .. child.ClassName .. ")")
+		end
 	end
-	warn("[NoobAI] Edit default.project.json (or source files) to add ArenaBounds Part inside NoobArena Model")
 	return
 end
 
@@ -96,17 +123,15 @@ local arenaSize = arena.Size
 print("[NoobAI] ✅ Arena bounds found at: " .. tostring(arenaCenter))
 print("[NoobAI] ✅ Arena size: " .. tostring(arenaSize))
 
--- Set diagnostic attributes (for DiagnosticClient)
-workspace:SetAttribute("NoobNpcAI_Running", true)
-workspace:SetAttribute("NoobNpcAI_ArenaPart", arena:GetFullName())
-
 -- =========================
--- CONFIGURATION
+-- CONFIG
 -- =========================
 -- Movement
 local CHASE_SPEED = 28
+local IDLE_SPEED = 16
 local DETECTION_RANGE = 200
-local CHASE_UPDATE_RATE = 0.2
+local PATHFINDING_UPDATE = 1.0 -- Recalculate path every 1 second
+local MOVEMENT_UPDATE = 0.1 -- Move every 0.1 seconds
 
 -- Laser
 local LASER_ENABLED = true
@@ -114,34 +139,41 @@ local LASER_MIN_RANGE = 25
 local LASER_MAX_RANGE = 160
 local LASER_COOLDOWN_MIN = 6
 local LASER_COOLDOWN_MAX = 10
-local LASER_WINDUP_TIME = 0.4
-local LASER_BEAM_DURATION = 0.2
+local LASER_CHARGE_TIME = 0.4
+local LASER_BEAM_DURATION = 0.6
+local LASER_SLOW_MULTIPLIER = 0.2
 local LASER_SLOW_DURATION = 0.5
-local LASER_SLOW_MULTIPLIER = 0.2  -- 20% speed
-local LASER_CHANCE_PER_TICK = 0.22
+local LASER_CHANCE_PER_TICK = 0.3
 
 -- Taunt
 local TAUNT_DURATION = 1.5
+
+-- Dance animations
+local DANCE_ANIMATIONS = {
+	"rbxassetid://3695333486",
+	"rbxassetid://4265725525",
+	"rbxassetid://3695333486",
+	"rbxassetid://3333499508",
+	"rbxassetid://3334538554",
+	"rbxassetid://3695333486",
+	"rbxassetid://3333331310",
+	"rbxassetid://3333432454",
+}
 
 -- =========================
 -- STATE MACHINE
 -- =========================
 local State = {
-	IDLE = "IDLE",        -- Meditating at center
+	IDLE = "IDLE",        -- At center
 	CHASING = "CHASING",  -- Chasing player
 	TAUNTING = "TAUNTING" -- Dancing after kill
 }
 
-local currentState = nil  -- Start as nil so first enterState() actually executes
+local currentState = nil
 local currentTarget = nil
-local chaseCoroutine = nil
-
--- IDLE state cleanup trackers
-local idleMoveConnection = nil
-local idleTimeoutThread = nil
-
--- forward declaration (fix: used before definition)
-local enterState
+local currentPath = nil
+local waypointIndex = 0
+local pathfindingCoroutine = nil
 
 -- =========================
 -- ANIMATIONS
@@ -152,7 +184,7 @@ if not animator then
 	animator.Parent = humanoid
 end
 
--- Walk
+-- Walk animation
 local walkAnim = Instance.new("Animation")
 walkAnim.AnimationId = "rbxassetid://180426354"
 local walkTrack = nil
@@ -161,13 +193,14 @@ local okWalk, errWalk = pcall(function()
 	walkTrack.Looped = true
 	walkTrack.Priority = Enum.AnimationPriority.Movement
 end)
-if not okWalk then
-	warn("[NoobAI] ❌ Failed to load walk animation: " .. tostring(errWalk))
-else
+
+if okWalk and walkTrack then
 	print("[NoobAI] ✅ Walk animation loaded successfully")
+else
+	warn("[NoobAI] ❌ Failed to load walk animation: " .. tostring(errWalk))
 end
 
--- Meditation
+-- Meditation animation
 local meditateAnim = Instance.new("Animation")
 meditateAnim.AnimationId = "rbxassetid://2510196951"
 local meditateTrack = nil
@@ -176,33 +209,24 @@ local okMed, errMed = pcall(function()
 	meditateTrack.Looped = true
 	meditateTrack.Priority = Enum.AnimationPriority.Idle
 end)
-if not okMed then
-	warn("[NoobAI] ❌ Failed to load meditation animation: " .. tostring(errMed))
-else
+
+if okMed and meditateTrack then
 	print("[NoobAI] ✅ Meditation animation loaded successfully")
+else
+	warn("[NoobAI] ❌ Failed to load meditation animation: " .. tostring(errMed))
 end
 
--- Dance animations
-local DANCE_ANIMATIONS = {
-	"rbxassetid://3333499508",  -- Tidy
-	"rbxassetid://3333136415",  -- Floss
-	"rbxassetid://3333432454",  -- Hype
-	"rbxassetid://4265725525",  -- Shuffle
-	"rbxassetid://3695333486",  -- Laughing
-	"rbxassetid://3333331310",  -- Salute
-	"rbxassetid://3333387824",  -- Point
-	"rbxassetid://4102315500",  -- Tilt
-}
+-- Current dance track
 local currentDanceTrack = nil
 
 -- =========================
 -- LASER SETUP
 -- =========================
-local eyeAttachment = head:FindFirstChild("EyeLaserAttachment")
+local eyeAttachment = head:FindFirstChild("FaceCenterAttachment")
 if not eyeAttachment then
 	eyeAttachment = Instance.new("Attachment")
-	eyeAttachment.Name = "EyeLaserAttachment"
-	eyeAttachment.Position = Vector3.new(0, 0.2, -0.6)
+	eyeAttachment.Name = "FaceCenterAttachment"
+	eyeAttachment.Position = Vector3.new(0, 0, -0.6)
 	eyeAttachment.Parent = head
 end
 
@@ -265,20 +289,6 @@ local function isPlayerInArena(player)
 	return isPositionInArena(playerHrp.Position)
 end
 
-local function clampToArena(position)
-	local relativePos = arena.CFrame:PointToObjectSpace(position)
-	local halfSize = arenaSize / 2
-	local margin = Vector3.new(2, 0, 2)  -- Reduced from 5 to give NPC more space
-
-	local clampedRelative = Vector3.new(
-		math.clamp(relativePos.X, -halfSize.X + margin.X, halfSize.X - margin.X),
-		relativePos.Y,
-		math.clamp(relativePos.Z, -halfSize.Z + margin.Z, halfSize.Z - margin.Z)
-	)
-
-	return arena.CFrame:PointToWorldSpace(clampedRelative)
-end
-
 local function getNearestPlayerInArena()
 	local nearestPlayer = nil
 	local nearestDist = DETECTION_RANGE
@@ -305,107 +315,144 @@ local function getNearestPlayerInArena()
 end
 
 -- =========================
--- LASER FUNCTIONS
+-- PATHFINDING SYSTEM
 -- =========================
-local function refreshLaserCooldown()
-	laserCooldown = math.random(LASER_COOLDOWN_MIN * 10, LASER_COOLDOWN_MAX * 10) / 10
+local pathfindingAgent = PathfindingService:CreatePath({
+	AgentRadius = 3,
+	AgentHeight = 5,
+	AgentCanJump = false,
+	WaypointSpacing = 4,
+	Costs = {}
+})
+
+local function createPathTo(targetPosition)
+	local success, errorMsg = pcall(function()
+		pathfindingAgent:ComputeAsync(hrp.Position, targetPosition)
+	end)
+
+	if success and pathfindingAgent.Status == Enum.PathStatus.Success then
+		return pathfindingAgent:GetWaypoints()
+	else
+		warn("[NoobAI] ⚠️ Pathfinding failed: " .. tostring(errorMsg))
+		return nil
+	end
 end
 
-local function canFireLaser()
-	return LASER_ENABLED and not isChargingLaser and (os.clock() - lastLaserFiredAt) >= laserCooldown
-end
+-- =========================
+-- MOVEMENT SYSTEM (NEW)
+-- =========================
+local movementConnection = nil
 
-local function aimAtTarget(targetPos, duration)
-	local flat = (targetPos - hrp.Position) * Vector3.new(1, 0, 1)
-	if flat.Magnitude < 0.1 then return end
-	local targetCFrame = CFrame.new(hrp.Position, hrp.Position + flat)
+local function startMovingToPosition(targetPos)
+	-- Stop old movement
+	if movementConnection then
+		movementConnection:Disconnect()
+		movementConnection = nil
+	end
 
-	TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		CFrame = targetCFrame
-	}):Play()
-end
+	print("[NoobAI] 🎯 Starting movement to: " .. tostring(targetPos))
 
-local function showLaserTelegraph()
-	telegraphLight.Brightness = 6
-	task.spawn(function()
-		local elapsed = 0
-		while elapsed < LASER_WINDUP_TIME and isChargingLaser do
-			telegraphLight.Brightness = 6 + math.sin(elapsed * 30) * 2
-			task.wait(0.05)
-			elapsed += 0.05
+	-- Use Heartbeat for reliable movement
+	movementConnection = RunService.Heartbeat:Connect(function()
+		if currentState ~= State.CHASING then
+			if movementConnection then
+				movementConnection:Disconnect()
+				movementConnection = nil
+			end
+			return
 		end
-		if not isChargingLaser then
-			telegraphLight.Brightness = 0
+
+		-- Calculate direction
+		local direction = (targetPos - hrp.Position) * Vector3.new(1, 0, 1) -- Ignore Y
+		local distance = direction.Magnitude
+
+		if distance > 2 then
+			-- Move NPC using CFrame (more reliable than MoveTo)
+			local moveSpeed = CHASE_SPEED
+			local moveStep = direction.Unit * moveSpeed * RunService.Heartbeat:Wait()
+
+			-- Only move if not blocked
+			local newPos = hrp.Position + moveStep
+			if isPositionInArena(newPos) then
+				hrp.CFrame = CFrame.new(newPos.X, hrp.Position.Y, newPos.Z)
+			end
 		end
 	end)
 end
 
-local function fireLaser(targetHrp)
-	if not canFireLaser() then return end
-	if not targetHrp or not targetHrp.Parent then return end
-	if not isPositionInArena(targetHrp.Position) then return end
+local function stopMovement()
+	if movementConnection then
+		movementConnection:Disconnect()
+		movementConnection = nil
+	end
+	humanoid:MoveTo(hrp.Position) -- Stop humanoid pathfinding
+end
 
-	local dist = (targetHrp.Position - hrp.Position).Magnitude
-	if dist < LASER_MIN_RANGE or dist > LASER_MAX_RANGE then return end
+-- =========================
+-- LASER SYSTEM
+-- =========================
+local function canFireLaser()
+	if not LASER_ENABLED then return false end
+	local timeSince = tick() - lastLaserFiredAt
+	return timeSince >= laserCooldown
+end
+
+local function aimAtTarget(target)
+	local targetCFrame = CFrame.lookAt(hrp.Position, target.Position)
+	local tween = TweenService:Create(
+		hrp,
+		TweenInfo.new(LASER_CHARGE_TIME * 0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{CFrame = targetCFrame}
+	)
+	tween:Play()
+end
+
+local function fireLaser(targetHrp)
+	if isChargingLaser then return end
+	if not canFireLaser() then return end
 
 	isChargingLaser = true
-	lastLaserFiredAt = os.clock()
-	refreshLaserCooldown()
-
 	local oldSpeed = humanoid.WalkSpeed
+
+	print("[NoobAI] 🔫 Charging laser at " .. currentTarget.Name)
 	humanoid.WalkSpeed = math.max(10, CHASE_SPEED * 0.5)
 
-	aimAtTarget(targetHrp.Position, LASER_WINDUP_TIME * 0.6)
-	showLaserTelegraph()
+	telegraphLight.Brightness = 8
+	task.wait(LASER_CHARGE_TIME * 0.5)
+	aimAtTarget(targetHrp)
+	task.wait(LASER_CHARGE_TIME * 0.5)
 
-	task.wait(LASER_WINDUP_TIME)
-
-	if not targetHrp.Parent then
-		isChargingLaser = false
-		telegraphLight.Brightness = 0
-		humanoid.WalkSpeed = oldSpeed
-		return
-	end
-
-	local origin = eyeAttachment.WorldPosition
-	local targetPos = targetHrp.Position + Vector3.new(0, 1.5, 0)
-	local direction = targetPos - origin
-
-	local result = workspace:Raycast(origin, direction, rayParams)
-
-	local hitPos = targetPos
-	local hitHumanoid = nil
-
-	if result then
-		hitPos = result.Position
-		local hitChar = result.Instance:FindFirstAncestorOfClass("Model")
-		if hitChar then
-			hitHumanoid = hitChar:FindFirstChildOfClass("Humanoid")
-		end
-	end
-
-	laserAnchor.Position = clampToArena(hitPos)
+	print("[NoobAI] ⚡ FIRING LASER!")
+	laserAnchor.Position = targetHrp.Position
 	laserBeam.Enabled = true
+	telegraphLight.Brightness = 15
 
-	-- Slow player (doesn't kill)
-	if hitHumanoid and hitHumanoid.Health > 0 then
-		local originalSpeed = hitHumanoid.WalkSpeed
-		hitHumanoid.WalkSpeed = originalSpeed * LASER_SLOW_MULTIPLIER
+	lastLaserFiredAt = tick()
+	laserCooldown = math.random(LASER_COOLDOWN_MIN * 10, LASER_COOLDOWN_MAX * 10) / 10
 
-		print("[NoobAI] 🎯 Laser hit! Slowing player for " .. LASER_SLOW_DURATION .. "s")
+	-- Raycast to check hit
+	local ray = workspace:Raycast(eyeAttachment.WorldPosition, (targetHrp.Position - eyeAttachment.WorldPosition).Unit * LASER_MAX_RANGE, rayParams)
 
-		-- Fire client effect
-		local player = Players:GetPlayerFromCharacter(hitHumanoid.Parent)
-		if player then
-			NpcLaserSlowEffect:FireClient(player, LASER_SLOW_DURATION)
-		end
+	if ray and ray.Instance then
+		local hitChar = ray.Instance.Parent
+		if hitChar and hitChar:FindFirstChild("Humanoid") then
+			local hitPlayer = Players:GetPlayerFromCharacter(hitChar)
+			if hitPlayer then
+				print("[NoobAI] 🎯 Laser HIT " .. hitPlayer.Name)
+				local hitHumanoid = hitChar.Humanoid
+				local originalSpeed = hitHumanoid.WalkSpeed
+				hitHumanoid.WalkSpeed = originalSpeed * LASER_SLOW_MULTIPLIER
 
-		-- Restore speed
-		task.delay(LASER_SLOW_DURATION, function()
-			if hitHumanoid and hitHumanoid.Health > 0 then
-				hitHumanoid.WalkSpeed = originalSpeed
+				-- Fire client event
+				NpcLaserSlowEffect:FireClient(hitPlayer)
+
+				task.delay(LASER_SLOW_DURATION, function()
+					if hitHumanoid then
+						hitHumanoid.WalkSpeed = originalSpeed
+					end
+				end)
 			end
-		end)
+		end
 	end
 
 	task.delay(LASER_BEAM_DURATION, function()
@@ -425,7 +472,7 @@ local function doVictoryTaunt()
 	print("[NoobAI] 💃 Starting victory taunt!")
 
 	-- Stop all movement
-	humanoid:MoveTo(hrp.Position)
+	stopMovement()
 	humanoid.WalkSpeed = 0
 
 	-- Choose random dance
@@ -454,14 +501,16 @@ local function doVictoryTaunt()
 end
 
 -- =========================
--- CHASE LOOP (Coroutine)
+-- CHASE LOOP (NEW - Using Pathfinding)
 -- =========================
 local function startChaseLoop()
-	chaseCoroutine = coroutine.create(function()
-		print("[NoobAI] 🏃 Chase loop STARTED")
+	pathfindingCoroutine = coroutine.create(function()
+		print("[NoobAI] 🏃 Chase loop STARTED (using PathfindingService)")
+		local lastPathUpdate = 0
+
 		while currentState == State.CHASING do
 			if not currentTarget or not currentTarget.Character then
-				print("[NoobAI] ❌ Chase loop: No target/character")
+				print("[NoobAI] ❌ No target")
 				enterState(State.IDLE)
 				break
 			end
@@ -470,26 +519,47 @@ local function startChaseLoop()
 			local targetHumanoid = currentTarget.Character:FindFirstChild("Humanoid")
 
 			if not targetHrp or not targetHumanoid or targetHumanoid.Health <= 0 then
-				print("[NoobAI] ❌ Chase loop: Target invalid")
+				print("[NoobAI] ❌ Target invalid")
 				enterState(State.IDLE)
 				break
 			end
 
 			if not isPlayerInArena(currentTarget) then
 				print("[NoobAI] 🏃 Target left arena")
-				print("[NoobAI] 📍 Player position: " .. tostring(targetHrp.Position))
-				print("[NoobAI] 📍 Arena center: " .. tostring(arenaCenter))
-				print("[NoobAI] 📏 Arena size: " .. tostring(arenaSize))
 				enterState(State.IDLE)
 				break
 			end
 
-			-- Chase target
-			local targetPos = clampToArena(targetHrp.Position)
-			local npcPos = hrp.Position
-			local distance = (targetPos - npcPos).Magnitude
-			print("[NoobAI] 🏃 Chasing: NPC=" .. tostring(npcPos) .. " → Target=" .. tostring(targetPos) .. " (dist=" .. math.floor(distance) .. ")")
-			humanoid:MoveTo(targetPos)
+			-- Update path periodically
+			local now = tick()
+			if now - lastPathUpdate >= PATHFINDING_UPDATE then
+				local waypoints = createPathTo(targetHrp.Position)
+				if waypoints and #waypoints > 0 then
+					currentPath = waypoints
+					waypointIndex = 2 -- Skip first waypoint (current position)
+					lastPathUpdate = now
+					print("[NoobAI] 🗺️ Path updated: " .. #waypoints .. " waypoints")
+				else
+					-- Fallback: move directly
+					startMovingToPosition(targetHrp.Position)
+				end
+			end
+
+			-- Follow path
+			if currentPath and waypointIndex <= #currentPath then
+				local waypoint = currentPath[waypointIndex]
+				local distance = (waypoint.Position - hrp.Position).Magnitude
+
+				if distance < 4 then
+					waypointIndex = waypointIndex + 1
+					print("[NoobAI] ✅ Reached waypoint " .. (waypointIndex - 1))
+				else
+					startMovingToPosition(waypoint.Position)
+				end
+			else
+				-- No path, move directly
+				startMovingToPosition(targetHrp.Position)
+			end
 
 			-- Try to fire laser
 			if not isChargingLaser and canFireLaser() then
@@ -503,11 +573,14 @@ local function startChaseLoop()
 				end
 			end
 
-			task.wait(CHASE_UPDATE_RATE)
+			task.wait(MOVEMENT_UPDATE)
 		end
+
+		stopMovement()
+		print("[NoobAI] 🏃 Chase loop ENDED")
 	end)
 
-	coroutine.resume(chaseCoroutine)
+	coroutine.resume(pathfindingCoroutine)
 end
 
 -- =========================
@@ -521,21 +594,17 @@ enterState = function(newState)
 
 	-- Exit current state
 	if currentState == State.IDLE then
-		if meditateTrack then meditateTrack:Stop() end
-		-- Clean up IDLE state connections
-		if idleMoveConnection then
-			idleMoveConnection:Disconnect()
-			idleMoveConnection = nil
-		end
-		if idleTimeoutThread then
-			task.cancel(idleTimeoutThread)
-			idleTimeoutThread = nil
+		if meditateTrack and meditateTrack.IsPlaying then
+			meditateTrack:Stop()
 		end
 
 	elseif currentState == State.CHASING then
-		if walkTrack then walkTrack:Stop() end
+		if walkTrack and walkTrack.IsPlaying then
+			walkTrack:Stop()
+		end
+		stopMovement()
 		currentTarget = nil
-		chaseCoroutine = nil
+		pathfindingCoroutine = nil
 
 	elseif currentState == State.TAUNTING then
 		if currentDanceTrack then
@@ -548,55 +617,41 @@ enterState = function(newState)
 
 	-- Enter new state
 	if newState == State.IDLE then
-		print("[NoobAI] 🧘 Entering IDLE - walking to center")
-		humanoid.WalkSpeed = 16
-		humanoid:MoveTo(arenaCenter)
+		print("[NoobAI] 🧘 Entering IDLE - returning to center")
+		humanoid.WalkSpeed = IDLE_SPEED
 
-		-- Wait for NPC to actually reach center
-		idleMoveConnection = humanoid.MoveToFinished:Connect(function(reached)
-			if idleMoveConnection then
-				idleMoveConnection:Disconnect()
-				idleMoveConnection = nil
-			end
-			if idleTimeoutThread then
-				task.cancel(idleTimeoutThread)
-				idleTimeoutThread = nil
-			end
-			if currentState == State.IDLE then
-				print("[NoobAI] ✅ Reached center, starting meditation")
-				humanoid.WalkSpeed = 0
-				humanoid:MoveTo(hrp.Position)
-				if meditateTrack then meditateTrack:Play() end
-			end
-		end)
+		-- Teleport to center immediately
+		hrp.CFrame = CFrame.new(arenaCenter)
+		print("[NoobAI] 📍 Teleported to: " .. tostring(hrp.Position))
 
-		-- Timeout fallback (30s)
-		idleTimeoutThread = task.delay(30, function()
-			if idleMoveConnection then
-				idleMoveConnection:Disconnect()
-				idleMoveConnection = nil
+		-- Start meditation
+		task.wait(0.5)
+		if currentState == State.IDLE then
+			humanoid.WalkSpeed = 0
+			if meditateTrack then
+				meditateTrack:Play()
 			end
-			idleTimeoutThread = nil
-			if currentState == State.IDLE then
-				print("[NoobAI] ⚠️ MoveTo timeout, starting meditation anyway")
-				humanoid.WalkSpeed = 0
-				if meditateTrack then meditateTrack:Play() end
-			end
-		end)
+		end
 
 	elseif newState == State.CHASING then
 		print("[NoobAI] 🏃 Entering CHASING - hunting target")
-		if meditateTrack then meditateTrack:Stop() end
+		if meditateTrack and meditateTrack.IsPlaying then
+			meditateTrack:Stop()
+		end
 		humanoid.WalkSpeed = CHASE_SPEED
-		if walkTrack then walkTrack:Play() end
+		if walkTrack then
+			walkTrack:Play()
+		end
 		startChaseLoop()
 
 	elseif newState == State.TAUNTING then
 		print("[NoobAI] 💃 Entering TAUNTING - victory dance")
-		if walkTrack then walkTrack:Stop() end
+		if walkTrack and walkTrack.IsPlaying then
+			walkTrack:Stop()
+		end
 		doVictoryTaunt()
 
-		-- Return to IDLE after taunt duration
+		-- Auto-return to IDLE after taunt
 		task.delay(TAUNT_DURATION, function()
 			if currentState == State.TAUNTING then
 				enterState(State.IDLE)
@@ -608,63 +663,48 @@ end
 -- =========================
 -- KILL ON TOUCH
 -- =========================
-for _, part in pairs(noob:GetDescendants()) do
-	if part:IsA("BasePart") then
-		part.Touched:Connect(function(hit)
-			local character = hit.Parent
-			local player = Players:GetPlayerFromCharacter(character)
+local function setupKillOnTouch()
+	for _, part in pairs(noob:GetChildren()) do
+		if part:IsA("BasePart") then
+			part.Touched:Connect(function(hit)
+				local character = hit.Parent
+				if not character then return end
 
-			if player then
-				local playerHumanoid = character:FindFirstChild("Humanoid")
-				if playerHumanoid and playerHumanoid.Health > 0 then
-					print("[NoobAI] ☠️ Killed " .. player.Name)
-					playerHumanoid.Health = 0
+				local player = Players:GetPlayerFromCharacter(character)
 
-					-- Fire client event (Vine Boom)
-					NpcKillPlayerEvent:FireClient(player)
+				if player then
+					local playerHumanoid = character:FindFirstChild("Humanoid")
+					if playerHumanoid and playerHumanoid.Health > 0 then
+						print("[NoobAI] ☠️ Killed " .. player.Name)
+						playerHumanoid.Health = 0
 
-					-- Taunt after kill
-					task.spawn(function()
-						task.wait(0.1)
-						if currentState ~= State.TAUNTING then
-							enterState(State.TAUNTING)
-						end
-					end)
+						-- Fire client event (Vine Boom)
+						NpcKillPlayerEvent:FireClient(player)
+
+						-- Taunt after kill
+						task.spawn(function()
+							task.wait(0.1)
+							if currentState ~= State.TAUNTING then
+								enterState(State.TAUNTING)
+							end
+						end)
+					end
 				end
-			end
-		end)
+			end)
+		end
 	end
 end
 
--- =========================
--- KEEP IN BOUNDS (only during CHASING)
--- =========================
-RunService.Heartbeat:Connect(function()
-	-- Only enforce bounds during CHASING to avoid interfering with return to center
-	if currentState == State.CHASING then
-		if not isPositionInArena(hrp.Position) then
-			local clampedPos = clampToArena(hrp.Position)
-			hrp.CFrame = CFrame.new(clampedPos.X, hrp.Position.Y, clampedPos.Z)
-			print("[NoobAI] ⚠️ NPC clamped to arena bounds: " .. tostring(clampedPos))
-		end
-	end
-end)
+setupKillOnTouch()
 
 -- =========================
 -- MAIN DETECTION LOOP
 -- =========================
 RunService.Heartbeat:Connect(function()
-	-- Only detect players when IDLE (not chasing or taunting)
+	-- Only detect players when IDLE
 	if currentState == State.IDLE then
 		local target = getNearestPlayerInArena()
 		if target then
-			local char = target.Character
-			if char then
-				local targetHrp = char:FindFirstChild("HumanoidRootPart")
-				if targetHrp then
-					print("[NoobAI] 🎯 Detected player: " .. target.Name .. " at " .. tostring(targetHrp.Position))
-				end
-			end
 			currentTarget = target
 			enterState(State.CHASING)
 		end
@@ -681,11 +721,15 @@ print("[NoobAI] 🎯 Detection range: " .. DETECTION_RANGE)
 print("[NoobAI] 🏃 Chase speed: " .. CHASE_SPEED)
 print("[NoobAI] 🔫 Laser enabled: " .. tostring(LASER_ENABLED))
 
--- CRITICAL: Teleport NPC to arena center before starting
--- (NPC spawns far away, bounds system would clamp it to edge)
-print("[NoobAI] 📦 Teleporting NPC to arena center: " .. tostring(arenaCenter))
+-- CRITICAL: Teleport NPC to arena center NOW
+print("[NoobAI] 📦 Teleporting NPC to arena center...")
 hrp.CFrame = CFrame.new(arenaCenter)
+task.wait(0.1) -- Small delay to ensure physics settle
 print("[NoobAI] ✅ NPC teleported to: " .. tostring(hrp.Position))
 
 -- Start in IDLE state
 enterState(State.IDLE)
+
+-- Set diagnostic attributes
+workspace:SetAttribute("NoobNpcAI_Running", true)
+workspace:SetAttribute("NoobNpcAI_ArenaPart", arena:GetFullName())

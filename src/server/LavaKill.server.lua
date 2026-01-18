@@ -1,6 +1,5 @@
 -- LavaKill.server.lua
--- Universal lava/kill brick script
--- Kills any player that touches parts with specific names or tags
+-- BULLETPROOF LAVA KILL SYSTEM - Versão definitiva com múltiplos métodos de detecção
 
 local Players = game:GetService("Players")
 local CollectionService = game:GetService("CollectionService")
@@ -18,7 +17,7 @@ local KILL_PART_NAMES = {
     "Acid"
 }
 
-local KILL_TAG = "KillOnTouch"  -- Use CollectionService tag
+local KILL_TAG = "KillOnTouch"
 local DEBUG = true
 
 -- ==================== SETUP ====================
@@ -28,6 +27,40 @@ local function debugLog(message)
     end
 end
 
+local killPartsList = {}
+local killCooldowns = {}  -- Prevent spam kills
+
+-- ==================== KILL FUNCTION ====================
+local function killPlayer(player, reason, part)
+    local character = player.Character
+    if not character then return false end
+
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then return false end
+
+    if humanoid.Health <= 0 then return false end
+
+    -- Kill the player
+    debugLog("💀 KILLING " .. player.Name .. " - Reason: " .. reason)
+    debugLog("   Part: " .. (part and part.Name or "unknown"))
+    debugLog("   Previous Health: " .. humanoid.Health)
+
+    humanoid.Health = 0
+
+    -- Verify it worked
+    task.wait(0.1)
+    if humanoid.Health > 0 then
+        warn("[LavaKill] ⚠️ Health set to 0 but player still alive! Trying again...")
+        humanoid.Health = 0
+        humanoid:TakeDamage(humanoid.MaxHealth * 2)
+    else
+        debugLog("   ✅ Player successfully killed")
+    end
+
+    return true
+end
+
+-- ==================== METHOD 1: TOUCHED EVENTS ====================
 local function setupKillTouch(part)
     if not part:IsA("BasePart") then return end
 
@@ -37,50 +70,138 @@ local function setupKillTouch(part)
     end
     part:SetAttribute("KillSetup", true)
 
-    -- CRITICAL: Force ALL collision properties to ensure Touched events work
-    -- ALWAYS set these, don't check first
+    -- FORCE ALL collision properties
     part.CanCollide = true
     part.CanTouch = true
     part.CanQuery = true
+    part.Anchored = true
 
-    debugLog("⚙️ Configured collision properties on: " .. part:GetFullName())
+    debugLog("⚙️ Setup Touched event on: " .. part:GetFullName())
     debugLog("   CanCollide=" .. tostring(part.CanCollide) ..
              " | CanTouch=" .. tostring(part.CanTouch) ..
              " | CanQuery=" .. tostring(part.CanQuery))
 
     part.Touched:Connect(function(hit)
-        debugLog("🔥 TOUCHED EVENT! Hit=" .. tostring(hit) .. " | Parent=" .. tostring(hit.Parent))
+        debugLog("🔥 TOUCHED EVENT! Hit=" .. tostring(hit.Name) .. " | Parent=" .. tostring(hit.Parent and hit.Parent.Name or "nil"))
+
+        if not hit or not hit.Parent then return end
 
         local character = hit.Parent
         local player = Players:GetPlayerFromCharacter(character)
 
         if player then
-            debugLog("✅ Player detected: " .. player.Name)
-            local humanoid = character:FindFirstChild("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                debugLog("💀 KILLING " .. player.Name .. " (Health=" .. humanoid.Health .. ")")
-                humanoid.Health = 0
-            else
-                debugLog("⚠️ Humanoid not found or already dead")
+            local cooldownKey = player.UserId .. "_touched_" .. part:GetFullName()
+            local lastKill = killCooldowns[cooldownKey] or 0
+
+            if os.clock() - lastKill > 1 then
+                killPlayer(player, "Touched Event", part)
+                killCooldowns[cooldownKey] = os.clock()
             end
-        else
-            debugLog("⏭️ Not a player (hit.Parent=" .. tostring(hit.Parent) .. ")")
+        end
+    end)
+end
+
+-- ==================== METHOD 2: POSITION-BASED DETECTION ====================
+local function startPositionBasedKiller()
+    debugLog("🚨 Starting position-based killer (fallback system)...")
+
+    task.spawn(function()
+        while true do
+            task.wait(0.1)  -- Check 10x per second
+
+            for _, player in ipairs(Players:GetPlayers()) do
+                local character = player.Character
+                if character then
+                    local hrp = character:FindFirstChild("HumanoidRootPart")
+                    local humanoid = character:FindFirstChild("Humanoid")
+
+                    if hrp and humanoid and humanoid.Health > 0 then
+                        local playerPos = hrp.Position
+
+                        -- Check each lava part
+                        for _, lavaPart in ipairs(killPartsList) do
+                            if lavaPart and lavaPart.Parent then
+                                local lavaPos = lavaPart.Position
+                                local lavaSize = lavaPart.Size
+
+                                -- Bounding box collision detection
+                                local dx = math.abs(playerPos.X - lavaPos.X)
+                                local dy = math.abs(playerPos.Y - lavaPos.Y)
+                                local dz = math.abs(playerPos.Z - lavaPos.Z)
+
+                                if dx < lavaSize.X/2 and dy < lavaSize.Y/2 and dz < lavaSize.Z/2 then
+                                    local cooldownKey = player.UserId .. "_position_" .. lavaPart:GetFullName()
+                                    local lastKill = killCooldowns[cooldownKey] or 0
+
+                                    if os.clock() - lastKill > 1 then
+                                        killPlayer(player, "Position Detection", lavaPart)
+                                        killCooldowns[cooldownKey] = os.clock()
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
         end
     end)
 
-    debugLog("✅ Setup kill touch on: " .. part:GetFullName())
+    debugLog("✅ Position-based killer active (checks every 0.1s)")
 end
 
--- ==================== SCAN WORKSPACE ====================
+-- ==================== METHOD 3: REGION3 DETECTION ====================
+local function startRegion3Killer()
+    debugLog("🎯 Starting Region3 killer (ultra-sensitive)...")
+
+    task.spawn(function()
+        while true do
+            task.wait(0.2)  -- Check 5x per second
+
+            for _, lavaPart in ipairs(killPartsList) do
+                if lavaPart and lavaPart.Parent then
+                    local pos = lavaPart.Position
+                    local size = lavaPart.Size
+
+                    -- Create Region3 around lava part
+                    local region = Region3.new(
+                        pos - (size/2) - Vector3.new(1, 1, 1),
+                        pos + (size/2) + Vector3.new(1, 1, 1)
+                    )
+                    region.CFrame = lavaPart.CFrame
+
+                    -- Get all parts in region
+                    local partsInRegion = workspace:FindPartsInRegion3(region, nil, 100)
+
+                    for _, part in ipairs(partsInRegion) do
+                        if part.Parent and part.Parent:FindFirstChild("Humanoid") then
+                            local player = Players:GetPlayerFromCharacter(part.Parent)
+                            if player then
+                                local cooldownKey = player.UserId .. "_region_" .. lavaPart:GetFullName()
+                                local lastKill = killCooldowns[cooldownKey] or 0
+
+                                if os.clock() - lastKill > 1 then
+                                    killPlayer(player, "Region3 Detection", lavaPart)
+                                    killCooldowns[cooldownKey] = os.clock()
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    debugLog("✅ Region3 killer active (checks every 0.2s)")
+end
+
+-- ==================== SCAN AND ACTIVATE ====================
 debugLog("==================== LAVA KILL SYSTEM STARTING ====================")
 
--- Wait for workspace to load
-task.wait(2)
+task.wait(2)  -- Wait for workspace to load
 
 local killPartsFound = 0
-local killPartsList = {}  -- Track all parts we find
 
--- Method 1: By name
+-- Find all kill parts
 debugLog("Scanning for kill parts by name...")
 for _, obj in pairs(workspace:GetDescendants()) do
     if obj:IsA("BasePart") then
@@ -96,7 +217,7 @@ for _, obj in pairs(workspace:GetDescendants()) do
     end
 end
 
--- Method 2: By tag
+-- Check for tagged parts
 debugLog("Scanning for kill parts by tag '" .. KILL_TAG .. "'...")
 local taggedParts = CollectionService:GetTagged(KILL_TAG)
 for _, part in ipairs(taggedParts) do
@@ -108,98 +229,30 @@ for _, part in ipairs(taggedParts) do
     end
 end
 
--- Listen for new parts added dynamically
+-- Listen for new parts
 workspace.DescendantAdded:Connect(function(obj)
     task.wait(0.1)
-
     if obj:IsA("BasePart") then
-        -- Check name
         for _, name in ipairs(KILL_PART_NAMES) do
             if obj.Name == name then
                 setupKillTouch(obj)
-                debugLog("Dynamically added kill part: " .. obj:GetFullName())
+                if not table.find(killPartsList, obj) then
+                    table.insert(killPartsList, obj)
+                    debugLog("Dynamically added: " .. obj:GetFullName())
+                end
                 break
             end
-        end
-
-        -- Check tag
-        if CollectionService:HasTag(obj, KILL_TAG) then
-            setupKillTouch(obj)
-            debugLog("Dynamically added tagged kill part: " .. obj:GetFullName())
         end
     end
 end)
 
--- Listen for parts tagged dynamically
 CollectionService:GetInstanceAddedSignal(KILL_TAG):Connect(function(obj)
     setupKillTouch(obj)
-    debugLog("Part tagged as kill: " .. obj:GetFullName())
+    if not table.find(killPartsList, obj) then
+        table.insert(killPartsList, obj)
+        debugLog("Part tagged as kill: " .. obj:GetFullName())
+    end
 end)
-
--- 🧪 PLAYER COLLISION DIAGNOSTICS
--- Check if player characters can collide with kill parts
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function(character)
-        task.wait(1)  -- Wait for character to fully load
-
-        local hrp = character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            debugLog("🧍 Player " .. player.Name .. " character loaded:")
-            debugLog("   HRP CanCollide: " .. tostring(hrp.CanCollide))
-            debugLog("   HRP CanTouch: " .. tostring(hrp.CanTouch))
-            debugLog("   HRP CollisionGroup: " .. hrp.CollisionGroup)
-
-            -- Check all character parts
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") and part.CanTouch == false then
-                    debugLog("   ⚠️ Part has CanTouch=false: " .. part.Name)
-                end
-            end
-        end
-    end)
-end)
-
--- 🔄 WATCHDOG: Continuously verify and enforce lava properties
--- Some scripts or Roblox itself might reset properties
-if killPartsFound > 0 then
-    task.spawn(function()
-        while true do
-            task.wait(5)  -- Check every 5 seconds
-
-            local fixedCount = 0
-            for _, part in ipairs(killPartsList) do
-                if part and part.Parent then
-                    local needsFix = false
-
-                    if not part.CanCollide then
-                        part.CanCollide = true
-                        needsFix = true
-                    end
-
-                    if not part.CanTouch then
-                        part.CanTouch = true
-                        needsFix = true
-                    end
-
-                    if not part.CanQuery then
-                        part.CanQuery = true
-                        needsFix = true
-                    end
-
-                    if needsFix then
-                        fixedCount = fixedCount + 1
-                        debugLog("🔧 Watchdog fixed properties on: " .. part:GetFullName())
-                    end
-                end
-            end
-
-            if fixedCount > 0 then
-                warn("[LavaKill] ⚠️ Watchdog had to fix " .. fixedCount .. " parts! Something is resetting their properties.")
-            end
-        end
-    end)
-    debugLog("🔄 Watchdog started - will monitor and enforce lava properties every 5 seconds")
-end
 
 debugLog("==================== LAVA KILL SYSTEM READY ====================")
 debugLog("Kill parts found: " .. killPartsFound)
@@ -211,35 +264,16 @@ if killPartsFound == 0 then
 else
     debugLog("✅ " .. killPartsFound .. " kill parts activated!")
 
-    -- 🧪 SELF-TEST: Verify Touched events are working
-    debugLog("🧪 Running self-test on first kill part...")
-    if killPartsList[1] then
-        local testPart = killPartsList[1]
-        debugLog("   Testing: " .. testPart:GetFullName())
-        debugLog("   Properties:")
-        debugLog("      CanCollide: " .. tostring(testPart.CanCollide))
-        debugLog("      CanTouch: " .. tostring(testPart.CanTouch))
-        debugLog("      CanQuery: " .. tostring(testPart.CanQuery))
-        debugLog("      Anchored: " .. tostring(testPart.Anchored))
-        debugLog("      Size: " .. tostring(testPart.Size))
-        debugLog("      Position: " .. tostring(testPart.Position))
+    -- ACTIVATE ALL 3 DETECTION METHODS
+    startPositionBasedKiller()  -- Method 2
+    startRegion3Killer()        -- Method 3
 
-        -- Test by firing Touched with a test part
-        local testTouchPart = Instance.new("Part")
-        testTouchPart.Name = "TestTouch"
-        testTouchPart.Size = Vector3.new(1, 1, 1)
-        testTouchPart.Position = testPart.Position + Vector3.new(0, 2, 0)
-        testTouchPart.Anchored = false
-        testTouchPart.CanCollide = true
-        testTouchPart.Parent = workspace
-
-        task.wait(0.5)
-
-        debugLog("   Test part created and dropped. If you see '🔥 TOUCHED EVENT!' above, events work!")
-        debugLog("   If not, there's a deeper issue with Roblox physics/events.")
-
-        task.wait(2)
-        testTouchPart:Destroy()
-        debugLog("   Self-test complete. Test part destroyed.")
-    end
+    debugLog("🛡️ TRIPLE PROTECTION ACTIVE:")
+    debugLog("   1️⃣ Touched Events")
+    debugLog("   2️⃣ Position Detection (every 0.1s)")
+    debugLog("   3️⃣ Region3 Detection (every 0.2s)")
+    debugLog("")
+    debugLog("💀 Players stepping into lava WILL DIE - guaranteed!")
 end
+
+debugLog("==================== SYSTEM FULLY OPERATIONAL ====================")
