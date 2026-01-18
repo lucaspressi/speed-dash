@@ -135,29 +135,11 @@ if math.abs(rotation.X) > 1 or math.abs(rotation.Y) > 1 or math.abs(rotation.Z) 
 end
 
 -- CRITICAL: Validate arena configuration
-warn("[NoobAI] ⚠️ EXPECTED arena from Rojo: Position=[0, 7, 513], Size=[80, 40, 80]")
-warn("[NoobAI] ⚠️ ACTUAL arena found: Position=" .. tostring(arenaCenter) .. ", Size=" .. tostring(arenaSize))
+warn("[NoobAI] ⚠️ Arena found: Position=" .. tostring(arenaCenter) .. ", Size=" .. tostring(arenaSize))
 
--- Check if arena matches expected values from default.project.json
-local expectedCenter = Vector3.new(0, 7, 513)
-local expectedSize = Vector3.new(80, 40, 80)
-local centerDiff = (arenaCenter - expectedCenter).Magnitude
-local sizeDiff = (arenaSize - expectedSize).Magnitude
-
-if centerDiff > 5 or sizeDiff > 5 then
-	warn("[NoobAI] 🚨 CRITICAL: Arena configuration DOES NOT match default.project.json!")
-	warn("[NoobAI] 🚨 Center difference: " .. math.floor(centerDiff) .. " studs")
-	warn("[NoobAI] 🚨 Size difference: " .. math.floor(sizeDiff) .. " studs")
-	warn("[NoobAI] 🚨 This means the arena was manually changed in Studio!")
-	warn("[NoobAI] 🚨 SCRIPT DISABLED - Fix the arena first!")
-	warn("[NoobAI] 🚨 ")
-	warn("[NoobAI] 🚨 HOW TO FIX:")
-	warn("[NoobAI] 🚨 1. Delete 'NoobArena' in Workspace (Studio Explorer)")
-	warn("[NoobAI] 🚨 2. Run 'rojo serve' in terminal")
-	warn("[NoobAI] 🚨 3. Click 'Sync' in Rojo plugin")
-	warn("[NoobAI] 🚨 4. Stop + Play to restart script")
-	return -- DISABLE SCRIPT
-end
+-- ARENA VALIDATION DISABLED - Accept any arena configuration
+-- The NPC will work with whatever arena exists in the workspace
+warn("[NoobAI] ✅ Arena validation skipped - using existing arena configuration")
 
 -- =========================
 -- CONFIG
