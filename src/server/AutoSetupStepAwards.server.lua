@@ -14,6 +14,9 @@ local stepAwardConfigs = {
 	["StepAward25"] = {bonus = 25, requiredWins = 25},  -- Requires 25 wins
 	["StepAward50"] = {bonus = 50, requiredWins = 50},  -- Requires 50 wins
 	["StepAward100"] = {bonus = 100, requiredWins = 100}, -- Requires 100 wins
+	["StepAward250"] = {bonus = 250, requiredWins = 250}, -- Requires 250 wins
+	["StepAward500"] = {bonus = 500, requiredWins = 500}, -- Requires 500 wins
+	["StepAward1000"] = {bonus = 1000, requiredWins = 1000}, -- Requires 1000 wins
 }
 
 local function configureStepAward(obj)

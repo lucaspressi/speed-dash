@@ -829,8 +829,34 @@ EquipStepAwardEvent.OnServerEvent:Connect(function(player, bonus)
 		return
 	end
 
+	-- ✅ SECURITY: Validate player has enough wins for this bonus
+	-- StepAward requirements map
+	local stepAwardRequirements = {
+		[1] = 0,      -- StepAward (free)
+		[2] = 2,      -- StepAward2
+		[10] = 10,    -- StepAward10
+		[25] = 25,    -- StepAward25
+		[50] = 50,    -- StepAward50
+		[100] = 100,  -- StepAward100
+		[250] = 250,  -- StepAward250
+		[500] = 500,  -- StepAward500
+		[1000] = 1000 -- StepAward1000
+	}
+
+	local requiredWins = stepAwardRequirements[bonus]
+	if not requiredWins then
+		warn("⚠️ [SECURITY] " .. player.Name .. " tried to equip invalid StepAward bonus: " .. tostring(bonus))
+		return
+	end
+
+	local currentWins = data.Wins or 0
+	if currentWins < requiredWins then
+		warn("⚠️ [SECURITY] " .. player.Name .. " tried to equip StepAward+" .. bonus .. " but only has " .. currentWins .. " wins (requires " .. requiredWins .. ")")
+		return
+	end
+
 	data.StepBonus = bonus
-	debugPrint("EQUIP", player.Name .. " equipped +" .. bonus .. " step bonus")
+	debugPrint("EQUIP", player.Name .. " equipped +" .. bonus .. " step bonus (Wins: " .. currentWins .. "/" .. requiredWins .. ")")
 	UpdateUIEvent:FireClient(player, data)
 	saveAll(player, data, "equip_step_award")
 end)
