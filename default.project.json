@@ -58,6 +58,9 @@
           "Disabled": true
         }
       },
+      "NpcAutoSpawn": {
+        "$path": "src/server/NpcAutoSpawn.server.lua"
+      },
       "NoobNpcAI": {
         "$path": "src/server/NoobNpcAI.server.lua"
       },
