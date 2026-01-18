@@ -13,19 +13,27 @@ print("")
 local treadmillMultipliers = {
 	-- Free treadmills (x1)
 	["TreadmillFree"] = 1,
+	["Esteira1x"] = 1,
+	["Esteira1X"] = 1,
 
 	-- Gold treadmills (x3)
 	["TreadmillX3"] = 3,
 	["TreadmillPaid"] = 3,
 	["TreadmillGold"] = 3,
+	["Esteira3x"] = 3,
+	["Esteira3X"] = 3,
 
 	-- Blue treadmills (x9)
 	["TreadmillBlue"] = 9,
 	["TreadmillX9"] = 9,
+	["Esteira9x"] = 9,
+	["Esteira9X"] = 9,
 
 	-- Purple treadmills (x25)
 	["TreadmillPurple"] = 25,
 	["TreadmillX25"] = 25,
+	["Esteira25x"] = 25,
+	["Esteira25X"] = 25,
 }
 
 -- Color mapping for visual identification
