@@ -129,7 +129,7 @@ local State = {
 	TAUNTING = "TAUNTING" -- Dancing after kill
 }
 
-local currentState = State.IDLE
+local currentState = nil  -- Start as nil so first enterState() actually executes
 local currentTarget = nil
 local chaseCoroutine = nil
 
@@ -500,7 +500,8 @@ end
 enterState = function(newState)
 	if currentState == newState then return end
 
-	print("[NoobAI] 🔄 State: " .. currentState .. " → " .. newState)
+	local oldState = currentState or "NONE"
+	print("[NoobAI] 🔄 State: " .. oldState .. " → " .. newState)
 
 	-- Exit current state
 	if currentState == State.IDLE then
