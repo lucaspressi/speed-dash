@@ -8,12 +8,13 @@ print("[AutoSetup StepAwards] ==================== AUTO-CONFIGURING STEP AWARDS 
 
 -- StepAward configuration: {bonus, requiredWins}
 local stepAwardConfigs = {
-	["StepAward2"] = {bonus = 2, requiredWins = 3},        -- Requires 3 wins
-	["StepAward5"] = {bonus = 5, requiredWins = 15},       -- Requires 15 wins
-	["StepAward25"] = {bonus = 25, requiredWins = 100},    -- Requires 100 wins
-	["StepAward50"] = {bonus = 50, requiredWins = 500},    -- Requires 500 wins
-	["StepAward100"] = {bonus = 100, requiredWins = 2500}, -- Requires 2,500 wins
-	["StepAward250"] = {bonus = 250, requiredWins = 15000}, -- Requires 15,000 wins
+	["StepAward2"] = {bonus = 2, requiredWins = 3},         -- Requires 3 wins
+	["StepAward5"] = {bonus = 5, requiredWins = 15},        -- Requires 15 wins
+	["StepAward10"] = {bonus = 10, requiredWins = 100},     -- Requires 100 wins
+	["StepAward25"] = {bonus = 25, requiredWins = 500},     -- Requires 500 wins
+	["StepAward50"] = {bonus = 50, requiredWins = 2500},    -- Requires 2,500 wins
+	["StepAward100"] = {bonus = 100, requiredWins = 15000}, -- Requires 15,000 wins
+	["StepAward250"] = {bonus = 250, requiredWins = 50000}, -- Requires 50,000 wins
 	["StepAward500"] = {bonus = 500, requiredWins = 250000}, -- Requires 250,000 wins
 }
 

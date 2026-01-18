@@ -834,10 +834,11 @@ EquipStepAwardEvent.OnServerEvent:Connect(function(player, bonus)
 	local stepAwardRequirements = {
 		[2] = 3,         -- StepAward2: 3 wins
 		[5] = 15,        -- StepAward5: 15 wins
-		[25] = 100,      -- StepAward25: 100 wins
-		[50] = 500,      -- StepAward50: 500 wins
-		[100] = 2500,    -- StepAward100: 2,500 wins
-		[250] = 15000,   -- StepAward250: 15,000 wins
+		[10] = 100,      -- StepAward10: 100 wins
+		[25] = 500,      -- StepAward25: 500 wins
+		[50] = 2500,     -- StepAward50: 2,500 wins
+		[100] = 15000,   -- StepAward100: 15,000 wins
+		[250] = 50000,   -- StepAward250: 50,000 wins
 		[500] = 250000   -- StepAward500: 250,000 wins
 	}
 
