@@ -435,8 +435,9 @@ local function startMovingToPosition(targetPos)
 
 		-- CRITICAL: Check if NPC is still in arena
 		if not isPositionInArena(hrp.Position) then
-			warn("[NoobAI] ⚠️ NPC escaped arena! Force teleporting back to center")
-			hrp.CFrame = CFrame.new(arenaCenter)
+			warn("[NoobAI] ⚠️ NPC escaped arena! Force teleporting back to ground level")
+			local groundPosition = Vector3.new(arenaCenter.X, arenaCenter.Y - 20, arenaCenter.Z)
+			hrp.CFrame = CFrame.new(groundPosition)
 			hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
 			enterState(State.IDLE)
 			return
@@ -769,9 +770,11 @@ enterState = function(newState)
 		print("[NoobAI] 🧘 Entering IDLE - returning to center")
 		humanoid.WalkSpeed = IDLE_SPEED
 
-		-- Teleport to center immediately
-		hrp.CFrame = CFrame.new(arenaCenter)
-		print("[NoobAI] 📍 Teleported to: " .. tostring(hrp.Position))
+		-- Teleport to center at GROUND LEVEL (subtract 20 studs to reach waypoint level)
+		-- This fixes pathfinding issues when NPC spawns 32 studs above waypoints
+		local groundPosition = Vector3.new(arenaCenter.X, arenaCenter.Y - 20, arenaCenter.Z)
+		hrp.CFrame = CFrame.new(groundPosition)
+		print("[NoobAI] 📍 Teleported to ground level: " .. tostring(hrp.Position))
 
 		-- Start meditation
 		task.wait(0.5)
@@ -866,8 +869,9 @@ RunService.Heartbeat:Connect(function()
 			lastBoundsWarning = now
 		end
 
-		-- Force teleport back to center
-		hrp.CFrame = CFrame.new(arenaCenter)
+		-- Force teleport back to ground level
+		local groundPosition = Vector3.new(arenaCenter.X, arenaCenter.Y - 20, arenaCenter.Z)
+		hrp.CFrame = CFrame.new(groundPosition)
 		if currentState ~= State.IDLE then
 			enterState(State.IDLE)
 		end
@@ -918,11 +922,12 @@ print("[NoobAI] 🎯 Detection range: " .. DETECTION_RANGE)
 print("[NoobAI] 🏃 Chase speed: " .. CHASE_SPEED)
 print("[NoobAI] 🔫 Laser enabled: " .. tostring(LASER_ENABLED))
 
--- CRITICAL: Teleport NPC to arena center NOW
-print("[NoobAI] 📦 Teleporting NPC to arena center...")
-hrp.CFrame = CFrame.new(arenaCenter)
+-- CRITICAL: Teleport NPC to arena center at GROUND LEVEL
+print("[NoobAI] 📦 Teleporting NPC to arena ground level...")
+local groundPosition = Vector3.new(arenaCenter.X, arenaCenter.Y - 20, arenaCenter.Z)
+hrp.CFrame = CFrame.new(groundPosition)
 task.wait(0.5) -- Delay to ensure physics fully settle
-print("[NoobAI] ✅ NPC teleported to: " .. tostring(hrp.Position))
+print("[NoobAI] ✅ NPC teleported to ground level: " .. tostring(hrp.Position))
 
 -- NOW setup kill-on-touch (after NPC is in arena, not in lobby!)
 print("[NoobAI] ⚔️ Setting up kill-on-touch...")
