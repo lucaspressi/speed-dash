@@ -268,7 +268,7 @@ end
 local function clampToArena(position)
 	local relativePos = arena.CFrame:PointToObjectSpace(position)
 	local halfSize = arenaSize / 2
-	local margin = Vector3.new(5, 0, 5)
+	local margin = Vector3.new(2, 0, 2)  -- Reduced from 5 to give NPC more space
 
 	local clampedRelative = Vector3.new(
 		math.clamp(relativePos.X, -halfSize.X + margin.X, halfSize.X - margin.X),
@@ -637,12 +637,16 @@ for _, part in pairs(noob:GetDescendants()) do
 end
 
 -- =========================
--- KEEP IN BOUNDS
+-- KEEP IN BOUNDS (only during CHASING)
 -- =========================
 RunService.Heartbeat:Connect(function()
-	if not isPositionInArena(hrp.Position) then
-		local clampedPos = clampToArena(hrp.Position)
-		hrp.CFrame = CFrame.new(clampedPos.X, hrp.Position.Y, clampedPos.Z)
+	-- Only enforce bounds during CHASING to avoid interfering with return to center
+	if currentState == State.CHASING then
+		if not isPositionInArena(hrp.Position) then
+			local clampedPos = clampToArena(hrp.Position)
+			hrp.CFrame = CFrame.new(clampedPos.X, hrp.Position.Y, clampedPos.Z)
+			print("[NoobAI] ⚠️ NPC clamped to arena bounds: " .. tostring(clampedPos))
+		end
 	end
 end)
 
@@ -676,6 +680,12 @@ print("[NoobAI] 📏 Arena size: " .. tostring(arenaSize))
 print("[NoobAI] 🎯 Detection range: " .. DETECTION_RANGE)
 print("[NoobAI] 🏃 Chase speed: " .. CHASE_SPEED)
 print("[NoobAI] 🔫 Laser enabled: " .. tostring(LASER_ENABLED))
+
+-- CRITICAL: Teleport NPC to arena center before starting
+-- (NPC spawns far away, bounds system would clamp it to edge)
+print("[NoobAI] 📦 Teleporting NPC to arena center: " .. tostring(arenaCenter))
+hrp.CFrame = CFrame.new(arenaCenter)
+print("[NoobAI] ✅ NPC teleported to: " .. tostring(hrp.Position))
 
 -- Start in IDLE state
 enterState(State.IDLE)
