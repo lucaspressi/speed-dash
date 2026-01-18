@@ -313,8 +313,11 @@ local function isPositionInArena(position)
 	local minBounds = arenaCenter - halfSize
 	local maxBounds = arenaCenter + halfSize
 
+	-- Add vertical tolerance (Y axis) for physics/animation fluctuations
+	local Y_TOLERANCE = 10 -- Allow 10 studs above/below for physics
+
 	return position.X >= minBounds.X and position.X <= maxBounds.X
-		and position.Y >= minBounds.Y and position.Y <= maxBounds.Y
+		and position.Y >= (minBounds.Y - Y_TOLERANCE) and position.Y <= (maxBounds.Y + Y_TOLERANCE)
 		and position.Z >= minBounds.Z and position.Z <= maxBounds.Z
 end
 
