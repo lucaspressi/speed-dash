@@ -140,7 +140,14 @@ if centerDiff > 5 or sizeDiff > 5 then
 	warn("[NoobAI] 🚨 Center difference: " .. math.floor(centerDiff) .. " studs")
 	warn("[NoobAI] 🚨 Size difference: " .. math.floor(sizeDiff) .. " studs")
 	warn("[NoobAI] 🚨 This means the arena was manually changed in Studio!")
-	warn("[NoobAI] 🚨 Run 'rojo serve' and Sync in Studio to fix this!")
+	warn("[NoobAI] 🚨 SCRIPT DISABLED - Fix the arena first!")
+	warn("[NoobAI] 🚨 ")
+	warn("[NoobAI] 🚨 HOW TO FIX:")
+	warn("[NoobAI] 🚨 1. Delete 'NoobArena' in Workspace (Studio Explorer)")
+	warn("[NoobAI] 🚨 2. Run 'rojo serve' in terminal")
+	warn("[NoobAI] 🚨 3. Click 'Sync' in Rojo plugin")
+	warn("[NoobAI] 🚨 4. Stop + Play to restart script")
+	return -- DISABLE SCRIPT
 end
 
 -- =========================
