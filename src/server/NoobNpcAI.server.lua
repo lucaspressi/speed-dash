@@ -74,18 +74,32 @@ humanoid.WalkSpeed = 16
 humanoid.JumpPower = 0 -- No jumping for NPC
 print("[NoobAI] ✅ WalkSpeed = 16, JumpPower = 0")
 
--- 6. Remove any BodyMovers that might exist
+-- 6. Remove any BodyMovers and constraints that might interfere
 for _, child in pairs(hrp:GetChildren()) do
 	if child:IsA("BodyMover") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") then
 		warn("[NoobAI] ⚠️ Found BodyMover: " .. child.ClassName .. " - DESTROYING")
 		child:Destroy()
 	end
+	if child:IsA("Constraint") and not child:IsA("Motor6D") and not child:IsA("Weld") then
+		warn("[NoobAI] ⚠️ Found Constraint: " .. child.ClassName .. " - DESTROYING")
+		child:Destroy()
+	end
 end
+
+-- 7. Ensure HumanoidRootPart has proper physics properties
+hrp.CanCollide = true
+hrp.Massless = false
+print("[NoobAI] ✅ HRP CanCollide = true, Massless = false")
 
 print("[NoobAI] 🔍 Initial Configuration:")
 print("[NoobAI]   Health: " .. humanoid.Health .. "/" .. humanoid.MaxHealth)
 print("[NoobAI]   Position: " .. tostring(hrp.Position))
 print("[NoobAI]   WalkSpeed: " .. humanoid.WalkSpeed)
+print("[NoobAI]   HRP Anchored: " .. tostring(hrp.Anchored))
+print("[NoobAI]   HRP CanCollide: " .. tostring(hrp.CanCollide))
+print("[NoobAI]   HRP Massless: " .. tostring(hrp.Massless))
+print("[NoobAI]   Humanoid PlatformStand: " .. tostring(humanoid.PlatformStand))
+print("[NoobAI]   Humanoid Sit: " .. tostring(humanoid.Sit))
 
 -- =========================
 -- ARENA CONFIGURATION
@@ -363,9 +377,11 @@ local function createPathTo(targetPosition)
 end
 
 -- =========================
--- MOVEMENT SYSTEM (NEW)
+-- MOVEMENT SYSTEM (FIXED - Using Humanoid:MoveTo)
 -- =========================
 local movementConnection = nil
+local currentMoveTarget = nil
+local moveReachedConnection = nil
 
 local function startMovingToPosition(targetPos)
 	-- Stop old movement
@@ -374,9 +390,40 @@ local function startMovingToPosition(targetPos)
 		movementConnection = nil
 	end
 
-	print("[NoobAI] 🎯 Starting movement to: " .. tostring(targetPos))
+	if moveReachedConnection then
+		moveReachedConnection:Disconnect()
+		moveReachedConnection = nil
+	end
 
-	-- Use Heartbeat for reliable movement
+	print("[NoobAI] 🎯 Starting movement to: " .. tostring(targetPos))
+	print("[NoobAI] 📍 Current position: " .. tostring(hrp.Position))
+
+	local distance = (targetPos - hrp.Position).Magnitude
+	print("[NoobAI] 📏 Distance to target: " .. math.floor(distance) .. " studs")
+
+	-- Validate target position is in arena
+	if not isPositionInArena(targetPos) then
+		warn("[NoobAI] ⚠️ Target position is outside arena! Aborting movement")
+		return
+	end
+
+	currentMoveTarget = targetPos
+
+	-- Use Humanoid:MoveTo for proper physics-based movement
+	humanoid:MoveTo(targetPos)
+
+	-- Debug: Check if velocity changes after MoveTo
+	task.delay(0.1, function()
+		local velocity = hrp.AssemblyLinearVelocity
+		print("[NoobAI] 🏃 Velocity after MoveTo: " .. tostring(velocity) .. " (Magnitude: " .. math.floor(velocity.Magnitude) .. ")")
+	end)
+
+	-- Monitor movement and retry if stuck
+	local moveStartTime = tick()
+	local lastPosition = hrp.Position
+	local stuckCheckInterval = 0.5
+	local lastStuckCheck = tick()
+
 	movementConnection = RunService.Heartbeat:Connect(function()
 		if currentState ~= State.CHASING then
 			if movementConnection then
@@ -390,28 +437,45 @@ local function startMovingToPosition(targetPos)
 		if not isPositionInArena(hrp.Position) then
 			warn("[NoobAI] ⚠️ NPC escaped arena! Force teleporting back to center")
 			hrp.CFrame = CFrame.new(arenaCenter)
+			hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
 			enterState(State.IDLE)
 			return
 		end
 
-		-- Calculate direction (include Y for vertical movement)
-		local direction = targetPos - hrp.Position
-		local distance = direction.Magnitude
+		-- Check if we're stuck (not moving)
+		local now = tick()
+		if now - lastStuckCheck >= stuckCheckInterval then
+			local distanceMoved = (hrp.Position - lastPosition).Magnitude
 
-		if distance > 2 then
-			-- Move NPC using CFrame (more reliable than MoveTo)
-			local moveSpeed = CHASE_SPEED
-			local moveStep = direction.Unit * moveSpeed * RunService.Heartbeat:Wait()
+			if distanceMoved < 0.5 then
+				-- We're stuck! Retry MoveTo command
+				print("[NoobAI] ⚠️ NPC appears stuck, retrying MoveTo command")
+				if currentMoveTarget and isPositionInArena(currentMoveTarget) then
+					humanoid:MoveTo(currentMoveTarget)
+				end
+			end
 
-			-- Only move if not blocked
-			local newPos = hrp.Position + moveStep
-			if isPositionInArena(newPos) then
-				-- Move in all 3 axes (X, Y, Z)
-				hrp.CFrame = CFrame.new(newPos)
-			else
-				warn("[NoobAI] ⚠️ Movement would exit arena bounds - blocked!")
+			lastPosition = hrp.Position
+			lastStuckCheck = now
+		end
+
+		-- Check if we reached the target (within 4 studs)
+		if currentMoveTarget then
+			local distance = (currentMoveTarget - hrp.Position).Magnitude
+			if distance < 4 then
+				-- Reached target, movement system will be updated by chase loop
+				if movementConnection then
+					movementConnection:Disconnect()
+					movementConnection = nil
+				end
 			end
 		end
+	end)
+
+	-- Backup: Listen for MoveToFinished event
+	moveReachedConnection = humanoid.MoveToFinished:Connect(function(reached)
+		print("[NoobAI] 📍 MoveToFinished: reached=" .. tostring(reached))
+		-- Chase loop will handle next waypoint
 	end)
 end
 
@@ -420,7 +484,22 @@ local function stopMovement()
 		movementConnection:Disconnect()
 		movementConnection = nil
 	end
-	humanoid:MoveTo(hrp.Position) -- Stop humanoid pathfinding
+
+	if moveReachedConnection then
+		moveReachedConnection:Disconnect()
+		moveReachedConnection = nil
+	end
+
+	currentMoveTarget = nil
+
+	-- Stop the Humanoid
+	humanoid:MoveTo(hrp.Position)
+
+	-- Zero out velocity to ensure complete stop
+	if hrp:IsA("BasePart") then
+		hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+		hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+	end
 end
 
 -- =========================
@@ -607,17 +686,23 @@ local function startChaseLoop()
 				end
 
 				local distance = (waypoint.Position - hrp.Position).Magnitude
+				print("[NoobAI] 🚶 Following waypoint " .. waypointIndex .. "/" .. #currentPath .. " - Distance: " .. math.floor(distance) .. " studs")
 
 				if distance < 4 then
 					waypointIndex = waypointIndex + 1
 					print("[NoobAI] ✅ Reached waypoint " .. (waypointIndex - 1))
 				else
-					startMovingToPosition(waypoint.Position)
+					-- Only issue new MoveTo if we don't have an active movement to this waypoint
+					if currentMoveTarget ~= waypoint.Position then
+						startMovingToPosition(waypoint.Position)
+					end
 				end
 			else
 				-- No path, move directly (only if target in arena)
 				if isPositionInArena(targetHrp.Position) then
-					startMovingToPosition(targetHrp.Position)
+					if currentMoveTarget ~= targetHrp.Position then
+						startMovingToPosition(targetHrp.Position)
+					end
 				else
 					warn("[NoobAI] ⚠️ No valid path - target outside arena")
 					enterState(State.IDLE)
