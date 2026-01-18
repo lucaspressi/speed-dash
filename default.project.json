@@ -53,13 +53,16 @@
         "$path": "src/server/AxeController.server.lua"
       },
       "RollingBallController": {
-        "$path": "src/server/RollingBallController.server.lua",
-        "$properties": {
-          "Disabled": true
-        }
+        "$path": "src/server/RollingBallController.server.lua"
       },
       "NoobNpcAI": {
         "$path": "src/server/NoobNpcAI.server.lua"
+      },
+      "LavaKill": {
+        "$path": "src/server/LavaKill.server.lua"
+      },
+      "TreadmillAutoFix": {
+        "$path": "src/server/TreadmillAutoFix.server.lua"
       },
       "ClientTestListener": {
         "$path": "src/server/ClientTestListener.server.lua"
