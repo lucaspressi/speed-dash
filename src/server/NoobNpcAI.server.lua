@@ -37,8 +37,7 @@ end
 print("[NoobAI] ✅ Found NPC and parts")
 
 -- =========================
-<<<<<<< HEAD
--- DEBUG: Check NPC Configuration
+-- DEBUG: Check NPC Configuration (kept from HEAD)
 -- =========================
 print("[NoobAI] 🔍 NPC Configuration:")
 print("[NoobAI]   Humanoid.Health = " .. humanoid.Health .. "/" .. humanoid.MaxHealth)
@@ -54,15 +53,12 @@ end
 
 -- Ensure humanoid is alive
 if humanoid.Health <= 0 then
-	warn("[NoobAI] ❌ Humanoid is DEAD! Respawning...")
+	warn("[NoobAI] ❌ Humanoid is DEAD! Restoring health...")
 	humanoid.Health = humanoid.MaxHealth
 end
 
 -- =========================
--- BOUNDS (do BKP - simples!)
-=======
 -- ARENA PART
->>>>>>> 08951421405d093f32c53e376910fec07d2aa33a
 -- =========================
 local arena = workspace:WaitForChild("NoobArena", 5)
 if not arena or not arena:IsA("BasePart") then
@@ -114,6 +110,9 @@ local currentState = State.IDLE
 local currentTarget = nil
 local chaseCoroutine = nil
 
+-- forward declaration (fix: used before definition)
+local enterState
+
 -- =========================
 -- ANIMATIONS
 -- =========================
@@ -127,13 +126,13 @@ end
 local walkAnim = Instance.new("Animation")
 walkAnim.AnimationId = "rbxassetid://180426354"
 local walkTrack = nil
-local success, err = pcall(function()
+local okWalk, errWalk = pcall(function()
 	walkTrack = animator:LoadAnimation(walkAnim)
 	walkTrack.Looped = true
 	walkTrack.Priority = Enum.AnimationPriority.Movement
 end)
-if not success then
-	warn("[NoobAI] ❌ Failed to load walk animation: " .. tostring(err))
+if not okWalk then
+	warn("[NoobAI] ❌ Failed to load walk animation: " .. tostring(errWalk))
 else
 	print("[NoobAI] ✅ Walk animation loaded successfully")
 end
@@ -141,9 +140,17 @@ end
 -- Meditation
 local meditateAnim = Instance.new("Animation")
 meditateAnim.AnimationId = "rbxassetid://2510196951"
-local meditateTrack = animator:LoadAnimation(meditateAnim)
-meditateTrack.Looped = true
-meditateTrack.Priority = Enum.AnimationPriority.Idle
+local meditateTrack = nil
+local okMed, errMed = pcall(function()
+	meditateTrack = animator:LoadAnimation(meditateAnim)
+	meditateTrack.Looped = true
+	meditateTrack.Priority = Enum.AnimationPriority.Idle
+end)
+if not okMed then
+	warn("[NoobAI] ❌ Failed to load meditation animation: " .. tostring(errMed))
+else
+	print("[NoobAI] ✅ Meditation animation loaded successfully")
+end
 
 -- Dance animations
 local DANCE_ANIMATIONS = {
@@ -158,28 +165,6 @@ local DANCE_ANIMATIONS = {
 }
 local currentDanceTrack = nil
 
-<<<<<<< HEAD
--- 🧘 Meditation (idle)
-local meditateAnim = Instance.new("Animation")
-meditateAnim.AnimationId = "rbxassetid://2510196951"
-local meditateTrack = nil
-local success2, err2 = pcall(function()
-	meditateTrack = animator:LoadAnimation(meditateAnim)
-	meditateTrack.Looped = true
-	meditateTrack.Priority = Enum.AnimationPriority.Idle
-end)
-if not success2 then
-	warn("[NoobAI] ❌ Failed to load meditation animation: " .. tostring(err2))
-else
-	print("[NoobAI] ✅ Meditation animation loaded successfully")
-end
-
-local isWalking = false
-local isTaunting = false
-local isMeditating = false
-
-=======
->>>>>>> 08951421405d093f32c53e376910fec07d2aa33a
 -- =========================
 -- LASER SETUP
 -- =========================
@@ -232,7 +217,6 @@ rayParams.IgnoreWater = true
 -- HELPER FUNCTIONS
 -- =========================
 local function isPositionInArena(position)
-	-- Check if position is within arena bounds (3D region)
 	local relativePos = arena.CFrame:PointToObjectSpace(position)
 	local halfSize = arenaSize / 2
 
@@ -252,7 +236,6 @@ local function isPlayerInArena(player)
 end
 
 local function clampToArena(position)
-	-- Clamp position to arena bounds with small margin
 	local relativePos = arena.CFrame:PointToObjectSpace(position)
 	local halfSize = arenaSize / 2
 	local margin = Vector3.new(5, 0, 5)
@@ -292,64 +275,6 @@ local function getNearestPlayerInArena()
 end
 
 -- =========================
-<<<<<<< HEAD
--- ANIMATION CONTROL
--- =========================
-local function startWalking()
-	if not isWalking and not isTaunting and not isMeditating then
-		print("[NoobAI] 🚶 Starting walk animation")
-		if walkTrack then
-			walkTrack:Play()
-			isWalking = true
-		else
-			warn("[NoobAI] ❌ Cannot start walking - walkTrack is nil!")
-		end
-	end
-end
-
-local function stopWalking()
-	if isWalking then
-		print("[NoobAI] 🛑 Stopping walk animation")
-		if walkTrack then
-			walkTrack:Stop()
-		end
-		isWalking = false
-	end
-end
-
-local function startMeditating()
-	if not isMeditating and not isTaunting and not isWalking then
-		print("[NoobAI] 🧘 Starting meditation...")
-		if meditateTrack then
-			local success, err = pcall(function()
-				meditateTrack:Play()
-			end)
-			if not success then
-				warn("[NoobAI] ❌ Failed to play meditation: " .. tostring(err))
-			else
-				print("[NoobAI] ✅ Meditation animation playing")
-			end
-			isMeditating = true
-		else
-			warn("[NoobAI] ❌ Cannot start meditating - meditateTrack is nil!")
-		end
-		humanoid:MoveTo(hrp.Position)
-	end
-end
-
-local function stopMeditating()
-	if isMeditating then
-		print("[NoobAI] 🧘 Stopping meditation...")
-		if meditateTrack then
-			meditateTrack:Stop()
-		end
-		isMeditating = false
-	end
-end
-
--- =========================
-=======
->>>>>>> 08951421405d093f32c53e376910fec07d2aa33a
 -- LASER FUNCTIONS
 -- =========================
 local function refreshLaserCooldown()
@@ -486,14 +411,14 @@ local function doVictoryTaunt()
 		currentDanceTrack:Destroy()
 	end
 
-	local success, err = pcall(function()
+	local ok, err = pcall(function()
 		currentDanceTrack = animator:LoadAnimation(danceAnim)
 		currentDanceTrack.Looped = false
 		currentDanceTrack.Priority = Enum.AnimationPriority.Action4
 		currentDanceTrack:Play()
 	end)
 
-	if not success then
+	if not ok then
 		warn("[NoobAI] ❌ Failed to play dance: " .. tostring(err))
 	end
 end
@@ -505,7 +430,6 @@ local function startChaseLoop()
 	chaseCoroutine = coroutine.create(function()
 		while currentState == State.CHASING do
 			if not currentTarget or not currentTarget.Character then
-				-- Lost target
 				enterState(State.IDLE)
 				break
 			end
@@ -514,13 +438,11 @@ local function startChaseLoop()
 			local targetHumanoid = currentTarget.Character:FindFirstChild("Humanoid")
 
 			if not targetHrp or not targetHumanoid or targetHumanoid.Health <= 0 then
-				-- Target died or invalid
 				enterState(State.IDLE)
 				break
 			end
 
 			if not isPlayerInArena(currentTarget) then
-				-- Target left arena
 				print("[NoobAI] 🏃 Target left arena")
 				enterState(State.IDLE)
 				break
@@ -552,21 +474,19 @@ end
 -- =========================
 -- STATE TRANSITIONS
 -- =========================
-function enterState(newState)
+enterState = function(newState)
 	if currentState == newState then return end
 
 	print("[NoobAI] 🔄 State: " .. currentState .. " → " .. newState)
 
 	-- Exit current state
 	if currentState == State.IDLE then
-		meditateTrack:Stop()
+		if meditateTrack then meditateTrack:Stop() end
 
 	elseif currentState == State.CHASING then
-		walkTrack:Stop()
+		if walkTrack then walkTrack:Stop() end
 		currentTarget = nil
-		if chaseCoroutine then
-			chaseCoroutine = nil
-		end
+		chaseCoroutine = nil
 
 	elseif currentState == State.TAUNTING then
 		if currentDanceTrack then
@@ -577,32 +497,6 @@ function enterState(newState)
 	-- Update state
 	currentState = newState
 
-<<<<<<< HEAD
-	print("[NoobAI] 🏠 returnToCenter() | Distance=" .. math.floor(dist) .. " studs")
-
-	if dist > 10 then  -- ✅ Aumentei de 5 para 10 (zona morta maior)
-		print("[NoobAI] 🏃 Too far from center, walking back...")
-		stopMeditating()
-		humanoid.WalkSpeed = RETURN_SPEED
-		humanoid:MoveTo(centerPosition)
-		startWalking()
-	else
-		print("[NoobAI] ✅ At center (dist=" .. math.floor(dist) .. " <= 10)")
-		-- ✅ Só para de andar se estava andando
-		if isWalking then
-			print("[NoobAI] 🛑 Stopping walk, starting meditation...")
-			humanoid:MoveTo(hrp.Position)
-			stopWalking()
-		end
-
-		-- ✅ Só inicia meditação se NÃO está meditando
-		if not isMeditating then
-			print("[NoobAI] 🧘 Attempting to start meditation...")
-			startMeditating()
-		else
-			print("[NoobAI] 🧘 Already meditating")
-		end
-=======
 	-- Enter new state
 	if newState == State.IDLE then
 		print("[NoobAI] 🧘 Entering IDLE - meditating at center")
@@ -614,20 +508,20 @@ function enterState(newState)
 			if currentState == State.IDLE then
 				humanoid.WalkSpeed = 0
 				humanoid:MoveTo(hrp.Position)
-				meditateTrack:Play()
+				if meditateTrack then meditateTrack:Play() end
 			end
 		end)
 
 	elseif newState == State.CHASING then
 		print("[NoobAI] 🏃 Entering CHASING - hunting target")
-		meditateTrack:Stop()
+		if meditateTrack then meditateTrack:Stop() end
 		humanoid.WalkSpeed = CHASE_SPEED
-		walkTrack:Play()
+		if walkTrack then walkTrack:Play() end
 		startChaseLoop()
 
 	elseif newState == State.TAUNTING then
 		print("[NoobAI] 💃 Entering TAUNTING - victory dance")
-		walkTrack:Stop()
+		if walkTrack then walkTrack:Stop() end
 		doVictoryTaunt()
 
 		-- Return to IDLE after taunt duration
@@ -636,7 +530,6 @@ function enterState(newState)
 				enterState(State.IDLE)
 			end
 		end)
->>>>>>> 08951421405d093f32c53e376910fec07d2aa33a
 	end
 end
 
@@ -684,32 +577,6 @@ end)
 -- =========================
 -- MAIN DETECTION LOOP
 -- =========================
-<<<<<<< HEAD
-print("[NoobAI] 🎯 Starting main AI loop...")
-print("[NoobAI] NPC Health: " .. humanoid.Health .. "/" .. humanoid.MaxHealth)
-print("[NoobAI] NPC Position: " .. tostring(hrp.Position))
-print("[NoobAI] Center Position: " .. tostring(centerPosition))
-
-local loopCount = 0
-while true do
-	loopCount = loopCount + 1
-
-	if loopCount % 20 == 1 then  -- Log a cada ~3 segundos
-		print("[NoobAI] 🔄 Loop #" .. loopCount .. " | isTaunting=" .. tostring(isTaunting) .. " | Position=" .. tostring(hrp.Position))
-	end
-
-	if not isTaunting then
-		local target = getNearestPlayer()
-
-		if target then
-			print("[NoobAI] 🎯 Target found: " .. target.Name)
-			chasePlayer(target)
-		else
-			if loopCount % 20 == 1 then
-				print("[NoobAI] 💤 No target, returning to center...")
-			end
-			returnToCenter()
-=======
 RunService.Heartbeat:Connect(function()
 	-- Only detect players when IDLE (not chasing or taunting)
 	if currentState == State.IDLE then
@@ -717,7 +584,6 @@ RunService.Heartbeat:Connect(function()
 		if target then
 			currentTarget = target
 			enterState(State.CHASING)
->>>>>>> 08951421405d093f32c53e376910fec07d2aa33a
 		end
 	end
 end)
