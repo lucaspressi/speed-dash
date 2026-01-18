@@ -117,11 +117,31 @@ if not arena or not arena:IsA("BasePart") then
 	return
 end
 
+print("[NoobAI] ✅ Arena Part: " .. arena:GetFullName())
+
 local arenaCenter = arena.Position
 local arenaSize = arena.Size
 
 print("[NoobAI] ✅ Arena bounds found at: " .. tostring(arenaCenter))
 print("[NoobAI] ✅ Arena size: " .. tostring(arenaSize))
+
+-- CRITICAL: Validate arena configuration
+warn("[NoobAI] ⚠️ EXPECTED arena from Rojo: Position=[0, 20, 100], Size=[80, 40, 80]")
+warn("[NoobAI] ⚠️ ACTUAL arena found: Position=" .. tostring(arenaCenter) .. ", Size=" .. tostring(arenaSize))
+
+-- Check if arena matches expected values from default.project.json
+local expectedCenter = Vector3.new(0, 20, 100)
+local expectedSize = Vector3.new(80, 40, 80)
+local centerDiff = (arenaCenter - expectedCenter).Magnitude
+local sizeDiff = (arenaSize - expectedSize).Magnitude
+
+if centerDiff > 5 or sizeDiff > 5 then
+	warn("[NoobAI] 🚨 CRITICAL: Arena configuration DOES NOT match default.project.json!")
+	warn("[NoobAI] 🚨 Center difference: " .. math.floor(centerDiff) .. " studs")
+	warn("[NoobAI] 🚨 Size difference: " .. math.floor(sizeDiff) .. " studs")
+	warn("[NoobAI] 🚨 This means the arena was manually changed in Studio!")
+	warn("[NoobAI] 🚨 Run 'rojo serve' and Sync in Studio to fix this!")
+end
 
 -- =========================
 -- CONFIG
@@ -740,10 +760,18 @@ setupKillOnTouch()
 -- ARENA BOUNDS ENFORCER (CRITICAL)
 -- =========================
 -- This runs ALWAYS to ensure NPC never escapes arena
+local lastBoundsWarning = 0
+local BOUNDS_WARNING_COOLDOWN = 2 -- Only warn every 2 seconds
+
 RunService.Heartbeat:Connect(function()
 	if not isPositionInArena(hrp.Position) then
-		warn("[NoobAI] 🚨 CRITICAL: NPC outside arena! Position: " .. tostring(hrp.Position))
-		warn("[NoobAI] 🚨 Arena center: " .. tostring(arenaCenter) .. " | Size: " .. tostring(arenaSize))
+		local now = tick()
+		if now - lastBoundsWarning >= BOUNDS_WARNING_COOLDOWN then
+			warn("[NoobAI] 🚨 CRITICAL: NPC outside arena! Position: " .. tostring(hrp.Position))
+			warn("[NoobAI] 🚨 Arena center: " .. tostring(arenaCenter) .. " | Size: " .. tostring(arenaSize))
+			lastBoundsWarning = now
+		end
+
 		-- Force teleport back to center
 		hrp.CFrame = CFrame.new(arenaCenter)
 		if currentState ~= State.IDLE then
