@@ -41,9 +41,12 @@ print("[NoobAI] ✅ Found NPC and parts")
 -- =========================
 print("[NoobAI] 🔍 NPC Configuration:")
 print("[NoobAI]   Humanoid.Health = " .. humanoid.Health .. "/" .. humanoid.MaxHealth)
-print("[NoobAI]   Humanoid.WalkSpeed = " .. humanoid.WalkSpeed)
+print("[NoobAI]   Humanoid.WalkSpeed = " .. humanoid.WalkSpeed .. " (RESETTING to 16)")
 print("[NoobAI]   HumanoidRootPart.Anchored = " .. tostring(hrp.Anchored))
 print("[NoobAI]   HumanoidRootPart.Position = " .. tostring(hrp.Position))
+
+-- Reset WalkSpeed to normal
+humanoid.WalkSpeed = 16
 
 -- ⚠️ CRITICAL: HumanoidRootPart CANNOT be anchored or NPC won't move!
 if hrp.Anchored then
@@ -132,6 +135,10 @@ local State = {
 local currentState = nil  -- Start as nil so first enterState() actually executes
 local currentTarget = nil
 local chaseCoroutine = nil
+
+-- IDLE state cleanup trackers
+local idleMoveConnection = nil
+local idleTimeoutThread = nil
 
 -- forward declaration (fix: used before definition)
 local enterState
@@ -451,8 +458,10 @@ end
 -- =========================
 local function startChaseLoop()
 	chaseCoroutine = coroutine.create(function()
+		print("[NoobAI] 🏃 Chase loop STARTED")
 		while currentState == State.CHASING do
 			if not currentTarget or not currentTarget.Character then
+				print("[NoobAI] ❌ Chase loop: No target/character")
 				enterState(State.IDLE)
 				break
 			end
@@ -461,6 +470,7 @@ local function startChaseLoop()
 			local targetHumanoid = currentTarget.Character:FindFirstChild("Humanoid")
 
 			if not targetHrp or not targetHumanoid or targetHumanoid.Health <= 0 then
+				print("[NoobAI] ❌ Chase loop: Target invalid")
 				enterState(State.IDLE)
 				break
 			end
@@ -476,6 +486,9 @@ local function startChaseLoop()
 
 			-- Chase target
 			local targetPos = clampToArena(targetHrp.Position)
+			local npcPos = hrp.Position
+			local distance = (targetPos - npcPos).Magnitude
+			print("[NoobAI] 🏃 Chasing: NPC=" .. tostring(npcPos) .. " → Target=" .. tostring(targetPos) .. " (dist=" .. math.floor(distance) .. ")")
 			humanoid:MoveTo(targetPos)
 
 			-- Try to fire laser
@@ -509,6 +522,15 @@ enterState = function(newState)
 	-- Exit current state
 	if currentState == State.IDLE then
 		if meditateTrack then meditateTrack:Stop() end
+		-- Clean up IDLE state connections
+		if idleMoveConnection then
+			idleMoveConnection:Disconnect()
+			idleMoveConnection = nil
+		end
+		if idleTimeoutThread then
+			task.cancel(idleTimeoutThread)
+			idleTimeoutThread = nil
+		end
 
 	elseif currentState == State.CHASING then
 		if walkTrack then walkTrack:Stop() end
@@ -531,9 +553,15 @@ enterState = function(newState)
 		humanoid:MoveTo(arenaCenter)
 
 		-- Wait for NPC to actually reach center
-		local connection
-		connection = humanoid.MoveToFinished:Connect(function(reached)
-			if connection then connection:Disconnect() end
+		idleMoveConnection = humanoid.MoveToFinished:Connect(function(reached)
+			if idleMoveConnection then
+				idleMoveConnection:Disconnect()
+				idleMoveConnection = nil
+			end
+			if idleTimeoutThread then
+				task.cancel(idleTimeoutThread)
+				idleTimeoutThread = nil
+			end
 			if currentState == State.IDLE then
 				print("[NoobAI] ✅ Reached center, starting meditation")
 				humanoid.WalkSpeed = 0
@@ -543,8 +571,12 @@ enterState = function(newState)
 		end)
 
 		-- Timeout fallback (30s)
-		task.delay(30, function()
-			if connection then connection:Disconnect() end
+		idleTimeoutThread = task.delay(30, function()
+			if idleMoveConnection then
+				idleMoveConnection:Disconnect()
+				idleMoveConnection = nil
+			end
+			idleTimeoutThread = nil
 			if currentState == State.IDLE then
 				print("[NoobAI] ⚠️ MoveTo timeout, starting meditation anyway")
 				humanoid.WalkSpeed = 0
