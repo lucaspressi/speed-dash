@@ -832,15 +832,13 @@ EquipStepAwardEvent.OnServerEvent:Connect(function(player, bonus)
 	-- ✅ SECURITY: Validate player has enough wins for this bonus
 	-- StepAward requirements map
 	local stepAwardRequirements = {
-		[1] = 0,      -- StepAward (free)
-		[2] = 2,      -- StepAward2
-		[10] = 10,    -- StepAward10
-		[25] = 25,    -- StepAward25
-		[50] = 50,    -- StepAward50
-		[100] = 100,  -- StepAward100
-		[250] = 250,  -- StepAward250
-		[500] = 500,  -- StepAward500
-		[1000] = 1000 -- StepAward1000
+		[2] = 3,         -- StepAward2: 3 wins
+		[5] = 15,        -- StepAward5: 15 wins
+		[25] = 100,      -- StepAward25: 100 wins
+		[50] = 500,      -- StepAward50: 500 wins
+		[100] = 2500,    -- StepAward100: 2,500 wins
+		[250] = 15000,   -- StepAward250: 15,000 wins
+		[500] = 250000   -- StepAward500: 250,000 wins
 	}
 
 	local requiredWins = stepAwardRequirements[bonus]

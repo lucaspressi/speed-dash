@@ -8,15 +8,13 @@ print("[AutoSetup StepAwards] ==================== AUTO-CONFIGURING STEP AWARDS 
 
 -- StepAward configuration: {bonus, requiredWins}
 local stepAwardConfigs = {
-	["StepAward"] = {bonus = 1, requiredWins = 0},      -- Free (no wins required)
-	["StepAward2"] = {bonus = 2, requiredWins = 2},     -- Requires 2 wins
-	["StepAward10"] = {bonus = 10, requiredWins = 10},  -- Requires 10 wins
-	["StepAward25"] = {bonus = 25, requiredWins = 25},  -- Requires 25 wins
-	["StepAward50"] = {bonus = 50, requiredWins = 50},  -- Requires 50 wins
-	["StepAward100"] = {bonus = 100, requiredWins = 100}, -- Requires 100 wins
-	["StepAward250"] = {bonus = 250, requiredWins = 250}, -- Requires 250 wins
-	["StepAward500"] = {bonus = 500, requiredWins = 500}, -- Requires 500 wins
-	["StepAward1000"] = {bonus = 1000, requiredWins = 1000}, -- Requires 1000 wins
+	["StepAward2"] = {bonus = 2, requiredWins = 3},        -- Requires 3 wins
+	["StepAward5"] = {bonus = 5, requiredWins = 15},       -- Requires 15 wins
+	["StepAward25"] = {bonus = 25, requiredWins = 100},    -- Requires 100 wins
+	["StepAward50"] = {bonus = 50, requiredWins = 500},    -- Requires 500 wins
+	["StepAward100"] = {bonus = 100, requiredWins = 2500}, -- Requires 2,500 wins
+	["StepAward250"] = {bonus = 250, requiredWins = 15000}, -- Requires 15,000 wins
+	["StepAward500"] = {bonus = 500, requiredWins = 250000}, -- Requires 250,000 wins
 }
 
 local function configureStepAward(obj)
