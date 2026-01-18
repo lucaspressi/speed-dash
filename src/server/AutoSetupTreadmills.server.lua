@@ -7,23 +7,24 @@ local workspace = game:GetService("Workspace")
 print("[AutoSetup] ==================== AUTO-CONFIGURING TEST TREADMILLS ====================")
 
 -- Define os multipliers e ProductIds para cada treadmill
+-- ⚠️ STANDARD NAMING: TreadmillX1, TreadmillX3, TreadmillX9, TreadmillX25
+-- Use STANDARDIZE_TREADMILLS.lua script to rename old treadmills
 local treadmillConfig = {
+	-- Standard names (preferred)
+	TreadmillX1 = {Multiplier = 1, IsFree = true, ProductId = 0},
+	TreadmillX3 = {Multiplier = 3, IsFree = false, ProductId = 3510662188},
+	TreadmillX9 = {Multiplier = 9, IsFree = false, ProductId = 3510662188},
+	TreadmillX25 = {Multiplier = 25, IsFree = false, ProductId = 3510662405},
+
+	-- Legacy names (for backwards compatibility)
 	TreadmillFree = {Multiplier = 1, IsFree = true, ProductId = 0},
 	Esteira1x = {Multiplier = 1, IsFree = true, ProductId = 0},
-	Esteira1X = {Multiplier = 1, IsFree = true, ProductId = 0},
-
-	TreadmillPaid = {Multiplier = 3, IsFree = false, ProductId = 3510662188},  -- Gold treadmills
-	TreadmillX3 = {Multiplier = 3, IsFree = false, ProductId = 3510662188},
+	TreadmillPaid = {Multiplier = 3, IsFree = false, ProductId = 3510662188},
 	Esteira3x = {Multiplier = 3, IsFree = false, ProductId = 3510662188},
-	Esteira3X = {Multiplier = 3, IsFree = false, ProductId = 3510662188},
-
-	TreadmillBlue = {Multiplier = 9, IsFree = false, ProductId = 3510662188},  -- Actually purple/roxas but named Blue
+	TreadmillBlue = {Multiplier = 9, IsFree = false, ProductId = 3510662188},
 	Esteira9x = {Multiplier = 9, IsFree = false, ProductId = 3510662188},
-	Esteira9X = {Multiplier = 9, IsFree = false, ProductId = 3510662188},
-
 	TreadmillPurple = {Multiplier = 25, IsFree = false, ProductId = 3510662405},
 	Esteira25x = {Multiplier = 25, IsFree = false, ProductId = 3510662405},
-	Esteira25X = {Multiplier = 25, IsFree = false, ProductId = 3510662405},
 }
 
 local configured = 0
