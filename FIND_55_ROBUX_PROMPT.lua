@@ -78,12 +78,16 @@ for _, service in ipairs(servicesToScan) do
                 -- Check HIGH PRIORITY patterns first
                 for _, patternData in ipairs(highPriorityPatterns) do
                     if string.find(source, patternData.pattern) or string.find(lowerSource, string.lower(patternData.pattern)) then
+                        local enabled = "N/A"
+                        if obj:IsA("Script") or obj:IsA("LocalScript") then
+                            enabled = obj.Enabled
+                        end
                         table.insert(highPriorityThreats, {
                             script = obj,
                             location = obj:GetFullName(),
                             reason = patternData.description,
                             source = source,
-                            enabled = obj.Enabled
+                            enabled = enabled
                         })
                         break
                     end
@@ -101,25 +105,33 @@ for _, service in ipairs(servicesToScan) do
                 end
 
                 if obfuscationScore >= 2 then
+                    local enabled = "N/A"
+                    if obj:IsA("Script") or obj:IsA("LocalScript") then
+                        enabled = obj.Enabled
+                    end
                     table.insert(obfuscatedScripts, {
                         script = obj,
                         location = obj:GetFullName(),
                         score = obfuscationScore,
                         reasons = obfuscationReasons,
                         source = source,
-                        enabled = obj.Enabled
+                        enabled = enabled
                     })
                 end
 
                 -- Check for known malicious asset IDs
                 for _, assetId in ipairs(knownMaliciousAssets) do
                     if string.find(source, assetId) then
+                        local enabled = "N/A"
+                        if obj:IsA("Script") or obj:IsA("LocalScript") then
+                            enabled = obj.Enabled
+                        end
                         table.insert(highPriorityThreats, {
                             script = obj,
                             location = obj:GetFullName(),
                             reason = "Known malicious asset ID: " .. assetId,
                             source = source,
-                            enabled = obj.Enabled
+                            enabled = enabled
                         })
                         break
                     end
