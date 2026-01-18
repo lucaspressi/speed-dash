@@ -149,7 +149,7 @@ Config.Audio = {
 	-- Background music (loops)
 	BackgroundMusic = {
 		SoundId = "rbxassetid://1837879082",  -- Chill music
-		Volume = 0.3,
+		Volume = 0.005,
 		Looped = true,
 	},
 
