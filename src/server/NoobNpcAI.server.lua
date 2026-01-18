@@ -3,36 +3,47 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+print("[NoobAI] Initializing...")
+
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local NpcKillPlayerEvent = Remotes:WaitForChild("NpcKillPlayer")
 local NpcLaserSlowEffect = Remotes:WaitForChild("NpcLaserSlowEffect")
 
+print("[NoobAI] Remotes found, searching for 'Buff Noob' NPC...")
+
 -- Try to find NPC with timeout
 local noob = workspace:WaitForChild("Buff Noob", 5)
 if not noob then
-	warn("[NoobAI] 'Buff Noob' NPC not found in Workspace. Script disabled.")
-	warn("[NoobAI] Please add 'Buff Noob' NPC to Workspace or disable this script.")
+	warn("[NoobAI] ❌ 'Buff Noob' NPC not found in Workspace. Script disabled.")
+	warn("[NoobAI] Please add 'Buff Noob' NPC model to Workspace.")
 	return
 end
+
+print("[NoobAI] ✅ Found 'Buff Noob' at: " .. noob:GetFullName())
 
 local humanoid = noob:WaitForChild("Humanoid", 5)
 local hrp = noob:WaitForChild("HumanoidRootPart", 5)
 local head = noob:WaitForChild("Head", 5)
 
 if not humanoid or not hrp or not head then
-	warn("[NoobAI] NPC missing required parts (Humanoid, HumanoidRootPart, or Head). Script disabled.")
+	warn("[NoobAI] ❌ NPC missing required parts (Humanoid, HumanoidRootPart, or Head). Script disabled.")
 	return
 end
+
+print("[NoobAI] ✅ NPC parts found (Humanoid, HumanoidRootPart, Head)")
 
 -- =========================
 -- BOUNDS (do BKP - simples!)
 -- =========================
+print("[NoobAI] Searching for 'Stage2NpcKill' area...")
 local stage2Area = workspace:WaitForChild("Stage2NpcKill", 5)
 if not stage2Area then
-	warn("[NoobAI] 'Stage2NpcKill' area not found in Workspace. Script disabled.")
-	warn("[NoobAI] Please add 'Stage2NpcKill' folder to Workspace or disable this script.")
+	warn("[NoobAI] ❌ 'Stage2NpcKill' area not found in Workspace. Script disabled.")
+	warn("[NoobAI] Please add 'Stage2NpcKill' folder with parts to Workspace.")
 	return
 end
+
+print("[NoobAI] ✅ Found 'Stage2NpcKill' at: " .. stage2Area:GetFullName())
 
 local minX, maxX = math.huge, -math.huge
 local minZ, maxZ = math.huge, -math.huge

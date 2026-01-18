@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
@@ -9,7 +10,7 @@ for _, obj in pairs(workspace:GetChildren()) do
     end
 end
 
-print("AxeController managing " .. #axes .. " axes")
+print("[AxeController] Managing " .. #axes .. " axes")
 
 -- Setup each axe
 local axeData = {}
@@ -55,8 +56,25 @@ for i, axe in ipairs(axes) do
             direction = direction,
             angle = (direction == 1) and 0 or math.pi -- Start opposite
         }
-        
-        print("Axe #" .. i .. " direction: " .. direction)
+
+        -- Setup kill touch on handle
+        if handlePart then
+            handlePart.Touched:Connect(function(hit)
+                local character = hit.Parent
+                local player = Players:GetPlayerFromCharacter(character)
+
+                if player then
+                    local humanoid = character:FindFirstChild("Humanoid")
+                    if humanoid and humanoid.Health > 0 then
+                        print("[AxeController] Axe #" .. i .. " killed " .. player.Name)
+                        humanoid.Health = 0
+                    end
+                end
+            end)
+            print("[AxeController] Axe #" .. i .. " kill touch enabled on Handle")
+        end
+
+        print("[AxeController] Axe #" .. i .. " direction: " .. direction)
     end
 end
 
@@ -80,4 +98,4 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
-print("AxeController started - 180 degree swing, alternating directions")
+print("[AxeController] Started - 180 degree swing, alternating directions, kill touch enabled")

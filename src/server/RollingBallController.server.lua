@@ -1,6 +1,8 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+print("[RollingBalls] Initializing...")
+
 -- Wait with timeout to prevent server hang
 local sphere1 = workspace:WaitForChild("sphere1", 10)
 local sphere2 = workspace:WaitForChild("sphere2", 10)
@@ -9,15 +11,21 @@ local ballRollPart2 = workspace:WaitForChild("BallRollPart2", 10)
 
 -- Early return if objects not found
 if not sphere1 or not sphere2 or not ballRollPart1 or not ballRollPart2 then
-    warn("[RollingBalls] Required objects not found in Workspace. Script disabled.")
+    warn("[RollingBalls] ❌ Required objects not found in Workspace. Script disabled.")
     warn("[RollingBalls] Missing:")
     if not sphere1 then warn("  - sphere1") end
     if not sphere2 then warn("  - sphere2") end
     if not ballRollPart1 then warn("  - BallRollPart1") end
     if not ballRollPart2 then warn("  - BallRollPart2") end
-    warn("[RollingBalls] Run CREATE_MISSING_ROLLING_BALLS.lua to create them.")
+    warn("[RollingBalls] Run VERIFY_ROLLING_BALLS.lua to diagnose the issue.")
     return
 end
+
+print("[RollingBalls] ✅ All required objects found:")
+print("[RollingBalls]   - sphere1: " .. tostring(sphere1:GetFullName()))
+print("[RollingBalls]   - sphere2: " .. tostring(sphere2:GetFullName()))
+print("[RollingBalls]   - BallRollPart1: " .. tostring(ballRollPart1:GetFullName()))
+print("[RollingBalls]   - BallRollPart2: " .. tostring(ballRollPart2:GetFullName()))
 
 local halfLength1 = ballRollPart1.Size.Z / 2
 local halfLength2 = ballRollPart2.Size.Z / 2
@@ -124,4 +132,9 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
-print("Rolling balls - SPEED 175!")
+print("[RollingBalls] ✅ Started successfully!")
+print("[RollingBalls] Speed: " .. ROLL_SPEED)
+print("[RollingBalls] Rotation: " .. ROTATION_SPEED)
+print("[RollingBalls] Ball 1 track: " .. tostring(ball1.startPos) .. " -> " .. tostring(ball1.endPos))
+print("[RollingBalls] Ball 2 track: " .. tostring(ball2.startPos) .. " -> " .. tostring(ball2.endPos))
+print("[RollingBalls] Kill touch enabled on both balls")
