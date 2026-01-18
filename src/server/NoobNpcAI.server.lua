@@ -314,7 +314,7 @@ local function isPositionInArena(position)
 	local maxBounds = arenaCenter + halfSize
 
 	-- Add vertical tolerance (Y axis) for physics/animation fluctuations
-	local Y_TOLERANCE = 10 -- Allow 10 studs above/below for physics
+	local Y_TOLERANCE = 15 -- Allow 15 studs above/below for physics
 
 	return position.X >= minBounds.X and position.X <= maxBounds.X
 		and position.Y >= (minBounds.Y - Y_TOLERANCE) and position.Y <= (maxBounds.Y + Y_TOLERANCE)
@@ -785,8 +785,11 @@ end
 -- This runs ALWAYS to ensure NPC never escapes arena
 local lastBoundsWarning = 0
 local BOUNDS_WARNING_COOLDOWN = 2 -- Only warn every 2 seconds
+local boundsEnforcerEnabled = false -- Start disabled to allow physics to settle
 
 RunService.Heartbeat:Connect(function()
+	if not boundsEnforcerEnabled then return end -- Wait for initialization
+
 	if not isPositionInArena(hrp.Position) then
 		local now = tick()
 		if now - lastBoundsWarning >= BOUNDS_WARNING_COOLDOWN then
@@ -850,7 +853,7 @@ print("[NoobAI] 🔫 Laser enabled: " .. tostring(LASER_ENABLED))
 -- CRITICAL: Teleport NPC to arena center NOW
 print("[NoobAI] 📦 Teleporting NPC to arena center...")
 hrp.CFrame = CFrame.new(arenaCenter)
-task.wait(0.1) -- Small delay to ensure physics settle
+task.wait(0.5) -- Delay to ensure physics fully settle
 print("[NoobAI] ✅ NPC teleported to: " .. tostring(hrp.Position))
 
 -- NOW setup kill-on-touch (after NPC is in arena, not in lobby!)
@@ -859,6 +862,12 @@ setupKillOnTouch()
 
 -- Start in IDLE state
 enterState(State.IDLE)
+
+-- Enable bounds enforcer after physics settle (2 seconds)
+task.delay(2, function()
+	boundsEnforcerEnabled = true
+	print("[NoobAI] ✅ Bounds enforcer enabled")
+end)
 
 -- Set diagnostic attributes
 workspace:SetAttribute("NoobNpcAI_Running", true)
