@@ -523,15 +523,28 @@ enterState = function(newState)
 
 	-- Enter new state
 	if newState == State.IDLE then
-		print("[NoobAI] 🧘 Entering IDLE - meditating at center")
+		print("[NoobAI] 🧘 Entering IDLE - walking to center")
 		humanoid.WalkSpeed = 16
 		humanoid:MoveTo(arenaCenter)
 
-		-- Wait to reach center, then meditate
-		task.delay(0.5, function()
+		-- Wait for NPC to actually reach center
+		local connection
+		connection = humanoid.MoveToFinished:Connect(function(reached)
+			if connection then connection:Disconnect() end
 			if currentState == State.IDLE then
+				print("[NoobAI] ✅ Reached center, starting meditation")
 				humanoid.WalkSpeed = 0
 				humanoid:MoveTo(hrp.Position)
+				if meditateTrack then meditateTrack:Play() end
+			end
+		end)
+
+		-- Timeout fallback (30s)
+		task.delay(30, function()
+			if connection then connection:Disconnect() end
+			if currentState == State.IDLE then
+				print("[NoobAI] ⚠️ MoveTo timeout, starting meditation anyway")
+				humanoid.WalkSpeed = 0
 				if meditateTrack then meditateTrack:Play() end
 			end
 		end)

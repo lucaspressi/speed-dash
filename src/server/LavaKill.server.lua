@@ -37,12 +37,16 @@ local function setupKillTouch(part)
     end
     part:SetAttribute("KillSetup", true)
 
-    -- CRITICAL: Force CanCollide = true so Touched events will fire
-    -- Parts with CanCollide = false never trigger Touched events in Roblox
-    if not part.CanCollide then
-        part.CanCollide = true
-        debugLog("⚠️ Enabled CanCollide on: " .. part:GetFullName())
-    end
+    -- CRITICAL: Force ALL collision properties to ensure Touched events work
+    -- ALWAYS set these, don't check first
+    part.CanCollide = true
+    part.CanTouch = true
+    part.CanQuery = true
+
+    debugLog("⚙️ Configured collision properties on: " .. part:GetFullName())
+    debugLog("   CanCollide=" .. tostring(part.CanCollide) ..
+             " | CanTouch=" .. tostring(part.CanTouch) ..
+             " | CanQuery=" .. tostring(part.CanQuery))
 
     part.Touched:Connect(function(hit)
         debugLog("🔥 TOUCHED EVENT! Hit=" .. tostring(hit) .. " | Parent=" .. tostring(hit.Parent))
@@ -64,7 +68,7 @@ local function setupKillTouch(part)
         end
     end)
 
-    debugLog("Setup kill touch on: " .. part:GetFullName())
+    debugLog("✅ Setup kill touch on: " .. part:GetFullName())
 end
 
 -- ==================== SCAN WORKSPACE ====================
