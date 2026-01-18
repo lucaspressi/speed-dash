@@ -362,6 +362,14 @@ local function startMovingToPosition(targetPos)
 			return
 		end
 
+		-- CRITICAL: Check if NPC is still in arena
+		if not isPositionInArena(hrp.Position) then
+			warn("[NoobAI] ⚠️ NPC escaped arena! Force teleporting back to center")
+			hrp.CFrame = CFrame.new(arenaCenter)
+			enterState(State.IDLE)
+			return
+		end
+
 		-- Calculate direction
 		local direction = (targetPos - hrp.Position) * Vector3.new(1, 0, 1) -- Ignore Y
 		local distance = direction.Magnitude
@@ -375,6 +383,8 @@ local function startMovingToPosition(targetPos)
 			local newPos = hrp.Position + moveStep
 			if isPositionInArena(newPos) then
 				hrp.CFrame = CFrame.new(newPos.X, hrp.Position.Y, newPos.Z)
+			else
+				warn("[NoobAI] ⚠️ Movement would exit arena bounds - blocked!")
 			end
 		end
 	end)
@@ -525,7 +535,14 @@ local function startChaseLoop()
 			end
 
 			if not isPlayerInArena(currentTarget) then
-				print("[NoobAI] 🏃 Target left arena")
+				print("[NoobAI] 🏃 Target left arena at: " .. tostring(targetHrp.Position))
+				enterState(State.IDLE)
+				break
+			end
+
+			-- CRITICAL: Don't chase targets outside arena
+			if not isPositionInArena(targetHrp.Position) then
+				warn("[NoobAI] ⚠️ Target is OUTSIDE arena bounds - aborting chase")
 				enterState(State.IDLE)
 				break
 			end
@@ -533,21 +550,37 @@ local function startChaseLoop()
 			-- Update path periodically
 			local now = tick()
 			if now - lastPathUpdate >= PATHFINDING_UPDATE then
-				local waypoints = createPathTo(targetHrp.Position)
-				if waypoints and #waypoints > 0 then
-					currentPath = waypoints
-					waypointIndex = 2 -- Skip first waypoint (current position)
-					lastPathUpdate = now
-					print("[NoobAI] 🗺️ Path updated: " .. #waypoints .. " waypoints")
+				-- Only pathfind to positions INSIDE arena
+				if isPositionInArena(targetHrp.Position) then
+					local waypoints = createPathTo(targetHrp.Position)
+					if waypoints and #waypoints > 0 then
+						currentPath = waypoints
+						waypointIndex = 2 -- Skip first waypoint (current position)
+						lastPathUpdate = now
+						print("[NoobAI] 🗺️ Path updated: " .. #waypoints .. " waypoints")
+					else
+						-- Fallback: move directly (only if in arena)
+						startMovingToPosition(targetHrp.Position)
+					end
 				else
-					-- Fallback: move directly
-					startMovingToPosition(targetHrp.Position)
+					warn("[NoobAI] ⚠️ Cannot pathfind to position outside arena")
+					enterState(State.IDLE)
+					break
 				end
 			end
 
 			-- Follow path
 			if currentPath and waypointIndex <= #currentPath then
 				local waypoint = currentPath[waypointIndex]
+
+				-- CRITICAL: Verify waypoint is in arena
+				if not isPositionInArena(waypoint.Position) then
+					warn("[NoobAI] ⚠️ Waypoint " .. waypointIndex .. " is OUTSIDE arena! Aborting path")
+					currentPath = nil
+					enterState(State.IDLE)
+					break
+				end
+
 				local distance = (waypoint.Position - hrp.Position).Magnitude
 
 				if distance < 4 then
@@ -557,8 +590,14 @@ local function startChaseLoop()
 					startMovingToPosition(waypoint.Position)
 				end
 			else
-				-- No path, move directly
-				startMovingToPosition(targetHrp.Position)
+				-- No path, move directly (only if target in arena)
+				if isPositionInArena(targetHrp.Position) then
+					startMovingToPosition(targetHrp.Position)
+				else
+					warn("[NoobAI] ⚠️ No valid path - target outside arena")
+					enterState(State.IDLE)
+					break
+				end
 			end
 
 			-- Try to fire laser
@@ -698,6 +737,22 @@ end
 setupKillOnTouch()
 
 -- =========================
+-- ARENA BOUNDS ENFORCER (CRITICAL)
+-- =========================
+-- This runs ALWAYS to ensure NPC never escapes arena
+RunService.Heartbeat:Connect(function()
+	if not isPositionInArena(hrp.Position) then
+		warn("[NoobAI] 🚨 CRITICAL: NPC outside arena! Position: " .. tostring(hrp.Position))
+		warn("[NoobAI] 🚨 Arena center: " .. tostring(arenaCenter) .. " | Size: " .. tostring(arenaSize))
+		-- Force teleport back to center
+		hrp.CFrame = CFrame.new(arenaCenter)
+		if currentState ~= State.IDLE then
+			enterState(State.IDLE)
+		end
+	end
+end)
+
+-- =========================
 -- MAIN DETECTION LOOP
 -- =========================
 RunService.Heartbeat:Connect(function()
@@ -705,8 +760,13 @@ RunService.Heartbeat:Connect(function()
 	if currentState == State.IDLE then
 		local target = getNearestPlayerInArena()
 		if target then
-			currentTarget = target
-			enterState(State.CHASING)
+			-- Double-check target is actually in arena
+			if isPlayerInArena(target) then
+				currentTarget = target
+				enterState(State.CHASING)
+			else
+				warn("[NoobAI] ⚠️ Target detected but NOT in arena - ignoring")
+			end
 		end
 	end
 end)
@@ -717,6 +777,21 @@ end)
 print("[NoobAI] ✅ Initialized successfully!")
 print("[NoobAI] 📍 Arena center: " .. tostring(arenaCenter))
 print("[NoobAI] 📏 Arena size: " .. tostring(arenaSize))
+
+-- Calculate and display arena bounds
+local halfSize = arenaSize / 2
+local minX = arenaCenter.X - halfSize.X
+local maxX = arenaCenter.X + halfSize.X
+local minY = arenaCenter.Y - halfSize.Y
+local maxY = arenaCenter.Y + halfSize.Y
+local minZ = arenaCenter.Z - halfSize.Z
+local maxZ = arenaCenter.Z + halfSize.Z
+
+print("[NoobAI] 🔲 Arena Bounds:")
+print("[NoobAI]   X: " .. minX .. " to " .. maxX)
+print("[NoobAI]   Y: " .. minY .. " to " .. maxY)
+print("[NoobAI]   Z: " .. minZ .. " to " .. maxZ)
+
 print("[NoobAI] 🎯 Detection range: " .. DETECTION_RANGE)
 print("[NoobAI] 🏃 Chase speed: " .. CHASE_SPEED)
 print("[NoobAI] 🔫 Laser enabled: " .. tostring(LASER_ENABLED))
