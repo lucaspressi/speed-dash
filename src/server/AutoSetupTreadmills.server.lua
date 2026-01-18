@@ -12,11 +12,12 @@ local treadmillConfig = {
 	Esteira1x = {Multiplier = 1, IsFree = true, ProductId = 0},
 	Esteira1X = {Multiplier = 1, IsFree = true, ProductId = 0},
 
+	TreadmillPaid = {Multiplier = 3, IsFree = false, ProductId = 3510662188},  -- Gold treadmills
 	TreadmillX3 = {Multiplier = 3, IsFree = false, ProductId = 3510662188},
 	Esteira3x = {Multiplier = 3, IsFree = false, ProductId = 3510662188},
 	Esteira3X = {Multiplier = 3, IsFree = false, ProductId = 3510662188},
 
-	TreadmillBlue = {Multiplier = 9, IsFree = false, ProductId = 3510662188},
+	TreadmillBlue = {Multiplier = 9, IsFree = false, ProductId = 3510662188},  -- Actually purple/roxas but named Blue
 	Esteira9x = {Multiplier = 9, IsFree = false, ProductId = 3510662188},
 	Esteira9X = {Multiplier = 9, IsFree = false, ProductId = 3510662188},
 
