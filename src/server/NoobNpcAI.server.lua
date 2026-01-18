@@ -60,7 +60,8 @@ end
 -- =========================
 -- ARENA PART
 -- =========================
-local arena = workspace:WaitForChild("NoobArena", 5)
+local arenaModel = workspace:WaitForChild("NoobArena", 5)
+local arena = arenaModel:WaitForChild("ArenaBounds", 5)
 if not arena or not arena:IsA("BasePart") then
 	warn("[NoobAI] ❌ 'NoobArena' Part not found in Workspace!")
 	warn("[NoobAI] Create a Part named 'NoobArena' to define where NPC operates.")
