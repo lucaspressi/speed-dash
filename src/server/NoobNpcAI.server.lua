@@ -124,6 +124,15 @@ local arenaSize = arena.Size
 
 print("[NoobAI] ✅ Arena bounds found at: " .. tostring(arenaCenter))
 print("[NoobAI] ✅ Arena size: " .. tostring(arenaSize))
+print("[NoobAI] ✅ Arena rotation: " .. tostring(arena.Rotation))
+
+-- Check for rotation
+local rotation = arena.Rotation
+if math.abs(rotation.X) > 1 or math.abs(rotation.Y) > 1 or math.abs(rotation.Z) > 1 then
+	warn("[NoobAI] ⚠️ WARNING: Arena has rotation! This may cause bounds detection issues")
+	warn("[NoobAI] ⚠️ Rotation: " .. tostring(rotation))
+	warn("[NoobAI] ⚠️ Arena should have zero rotation for proper function")
+end
 
 -- CRITICAL: Validate arena configuration
 warn("[NoobAI] ⚠️ EXPECTED arena from Rojo: Position=[0, 20, 100], Size=[80, 40, 80]")
@@ -298,12 +307,15 @@ rayParams.IgnoreWater = true
 -- HELPER FUNCTIONS
 -- =========================
 local function isPositionInArena(position)
-	local relativePos = arena.CFrame:PointToObjectSpace(position)
+	-- Use simple AABB (Axis-Aligned Bounding Box) check
+	-- This ignores rotation and works in world space
 	local halfSize = arenaSize / 2
+	local minBounds = arenaCenter - halfSize
+	local maxBounds = arenaCenter + halfSize
 
-	return math.abs(relativePos.X) <= halfSize.X
-		and math.abs(relativePos.Y) <= halfSize.Y
-		and math.abs(relativePos.Z) <= halfSize.Z
+	return position.X >= minBounds.X and position.X <= maxBounds.X
+		and position.Y >= minBounds.Y and position.Y <= maxBounds.Y
+		and position.Z >= minBounds.Z and position.Z <= maxBounds.Z
 end
 
 local function isPlayerInArena(player)
@@ -761,7 +773,8 @@ local function setupKillOnTouch()
 	end
 end
 
-setupKillOnTouch()
+-- NOTE: setupKillOnTouch() is called AFTER teleporting NPC to arena
+-- (see initialization section at end of file)
 
 -- =========================
 -- ARENA BOUNDS ENFORCER (CRITICAL)
@@ -836,6 +849,10 @@ print("[NoobAI] 📦 Teleporting NPC to arena center...")
 hrp.CFrame = CFrame.new(arenaCenter)
 task.wait(0.1) -- Small delay to ensure physics settle
 print("[NoobAI] ✅ NPC teleported to: " .. tostring(hrp.Position))
+
+-- NOW setup kill-on-touch (after NPC is in arena, not in lobby!)
+print("[NoobAI] ⚔️ Setting up kill-on-touch...")
+setupKillOnTouch()
 
 -- Start in IDLE state
 enterState(State.IDLE)
