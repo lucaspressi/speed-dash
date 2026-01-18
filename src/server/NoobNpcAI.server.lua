@@ -394,8 +394,8 @@ local function startMovingToPosition(targetPos)
 			return
 		end
 
-		-- Calculate direction
-		local direction = (targetPos - hrp.Position) * Vector3.new(1, 0, 1) -- Ignore Y
+		-- Calculate direction (include Y for vertical movement)
+		local direction = targetPos - hrp.Position
 		local distance = direction.Magnitude
 
 		if distance > 2 then
@@ -406,7 +406,8 @@ local function startMovingToPosition(targetPos)
 			-- Only move if not blocked
 			local newPos = hrp.Position + moveStep
 			if isPositionInArena(newPos) then
-				hrp.CFrame = CFrame.new(newPos.X, hrp.Position.Y, newPos.Z)
+				-- Move in all 3 axes (X, Y, Z)
+				hrp.CFrame = CFrame.new(newPos)
 			else
 				warn("[NoobAI] ⚠️ Movement would exit arena bounds - blocked!")
 			end
