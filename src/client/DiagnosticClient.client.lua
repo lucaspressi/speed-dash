@@ -5,8 +5,35 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
+
+-- Telemetry helper (optional - sends to backend if available)
+local function sendTelemetry(level, category, message, context)
+	-- Always print locally
+	print(string.format("[%s] [%s] %s", level:upper(), category, message))
+
+	-- Try to send to backend (will fail in Studio, that's ok)
+	if not RunService:IsStudio() then
+		pcall(function()
+			HttpService:PostAsync(
+				"http://localhost:3001/api/telemetry",
+				HttpService:JSONEncode({
+					level = level,
+					category = category,
+					message = message,
+					context = context,
+					placeId = game.PlaceId,
+					playerName = player.Name,
+					userId = player.UserId
+				}),
+				Enum.HttpContentType.ApplicationJson,
+				false
+			)
+		end)
+	end
+end
 
 -- Wait a bit for server to initialize
 task.wait(3)
@@ -40,6 +67,10 @@ if leaderstats then
 else
 	warn("   ❌ NO LEADERSTATS FOLDER!")
 	warn("   SpeedGameServer didn't create leaderstats on PlayerAdded")
+	sendTelemetry("error", "Leaderstats", "Player has no leaderstats folder", {
+		playerName = player.Name,
+		userId = player.UserId
+	})
 end
 
 print("")

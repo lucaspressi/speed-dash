@@ -64,6 +64,9 @@
       "TreadmillAutoFix": {
         "$path": "src/server/TreadmillAutoFix.server.lua"
       },
+      "TelemetryService": {
+        "$path": "src/server/TelemetryService.server.lua"
+      },
       "ClientTestListener": {
         "$path": "src/server/ClientTestListener.server.lua"
       },
