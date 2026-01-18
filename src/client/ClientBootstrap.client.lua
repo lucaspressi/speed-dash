@@ -811,13 +811,15 @@ RunService.Heartbeat:Connect(function(dt)
 	local wasOnTreadmill = onTreadmill
 	onTreadmill = serverOnTreadmill
 
-	if onTreadmill and not wasOnTreadmill then
-		playRunAnimation()
-	end
+	-- 🏃 Animation control moved to server (TreadmillService) for replication
+	-- This ensures all players can see the running animation, not just the local player
+	-- if onTreadmill and not wasOnTreadmill then
+	-- 	playRunAnimation()
+	-- end
 
-	if not onTreadmill and wasOnTreadmill then
-		stopRunAnimation()
-	end
+	-- if not onTreadmill and wasOnTreadmill then
+	-- 	stopRunAnimation()
+	-- end
 
 	-- Se está em treadmill, envia steps regularmente
 	if onTreadmill then

@@ -23,6 +23,7 @@ local VELOCITY_THRESHOLD = 1  -- Só checa players com velocidade > 1
 
 -- ==================== ESTADO ====================
 local playerStates = {}  -- [UserId] = {LastZone, LastCheck, CurrentMultiplier}
+local playerAnimations = {}  -- [UserId] = AnimationTrack
 
 -- ==================== LOGGING ====================
 local function debugLog(message)
@@ -80,7 +81,57 @@ end
 
 local function cleanupPlayerState(player)
 	playerStates[player.UserId] = nil
+	playerAnimations[player.UserId] = nil
 	debugLog("Cleaned up state for " .. player.Name)
+end
+
+-- ==================== ANIMATION CONTROL (SERVER-SIDE) ====================
+local function playRunAnimationOnServer(player)
+	local character = player.Character
+	if not character then return end
+
+	local humanoid = character:FindFirstChild("Humanoid")
+	if not humanoid then return end
+
+	-- Check if already playing
+	if playerAnimations[player.UserId] then
+		return  -- Already running
+	end
+
+	-- Try to use existing run animation from Animate script
+	local animate = character:FindFirstChild("Animate")
+	local runAnim = nil
+
+	if animate then
+		local run = animate:FindFirstChild("run")
+		if run then
+			runAnim = run:FindFirstChildOfClass("Animation")
+		end
+	end
+
+	-- Fallback to default run animation
+	if not runAnim then
+		runAnim = Instance.new("Animation")
+		runAnim.AnimationId = "rbxassetid://180426354"  -- Default run
+	end
+
+	-- Load and play animation ON SERVER (this replicates to all clients!)
+	local animTrack = humanoid:LoadAnimation(runAnim)
+	animTrack.Priority = Enum.AnimationPriority.Movement
+	animTrack.Looped = true
+	animTrack:Play()
+
+	playerAnimations[player.UserId] = animTrack
+	debugLog("▶️ Started run animation for " .. player.Name .. " (SERVER-SIDE - visible to all)")
+end
+
+local function stopRunAnimationOnServer(player)
+	local animTrack = playerAnimations[player.UserId]
+	if not animTrack then return end
+
+	animTrack:Stop()
+	playerAnimations[player.UserId] = nil
+	debugLog("⏹️ Stopped run animation for " .. player.Name)
 end
 
 Players.PlayerAdded:Connect(initializePlayerState)
@@ -162,12 +213,23 @@ RunService.Heartbeat:Connect(function(deltaTime)
 
 		-- Atualiza estado se mudou
 		if oldMultiplier ~= newMultiplier or state.OnTreadmill ~= onTreadmill then
+			local wasOnTreadmill = state.OnTreadmill  -- Save old state
+
 			state.CurrentMultiplier = newMultiplier
 			state.OnTreadmill = onTreadmill
 
 			-- Sync com client via Attributes
 			player:SetAttribute("CurrentTreadmillMultiplier", newMultiplier)
 			player:SetAttribute("OnTreadmill", onTreadmill)
+
+			-- 🏃 Control run animation on server (visible to all players)
+			if onTreadmill and not wasOnTreadmill then
+				-- Just entered treadmill
+				playRunAnimationOnServer(player)
+			elseif not onTreadmill and wasOnTreadmill then
+				-- Just left treadmill
+				stopRunAnimationOnServer(player)
+			end
 		end
 
 		state.LastCheck = currentTime
