@@ -53,7 +53,10 @@
         "$path": "src/server/AxeController.server.lua"
       },
       "RollingBallController": {
-        "$path": "src/server/RollingBallController.server.lua"
+        "$path": "src/server/RollingBallController.server.lua",
+        "$properties": {
+          "Disabled": true
+        }
       },
       "NoobNpcAI": {
         "$path": "src/server/NoobNpcAI.server.lua"
@@ -87,6 +90,15 @@
         },
         "TreadmillRegistry": {
           "$path": "src/server/modules/TreadmillRegistry.lua"
+        },
+        "AdminConfig": {
+          "$path": "src/server/modules/AdminConfig.lua"
+        },
+        "AdminControlFunctions": {
+          "$path": "src/server/modules/AdminControlFunctions.lua"
+        },
+        "AdminSecurity": {
+          "$path": "src/server/modules/AdminSecurity.lua"
         }
       },
 
