@@ -38,15 +38,22 @@ local function setupKillTouch(part)
     part:SetAttribute("KillSetup", true)
 
     part.Touched:Connect(function(hit)
+        debugLog("🔥 TOUCHED EVENT! Hit=" .. tostring(hit) .. " | Parent=" .. tostring(hit.Parent))
+
         local character = hit.Parent
         local player = Players:GetPlayerFromCharacter(character)
 
         if player then
+            debugLog("✅ Player detected: " .. player.Name)
             local humanoid = character:FindFirstChild("Humanoid")
             if humanoid and humanoid.Health > 0 then
-                debugLog("Player " .. player.Name .. " touched " .. part:GetFullName() .. " - KILLING")
+                debugLog("💀 KILLING " .. player.Name .. " (Health=" .. humanoid.Health .. ")")
                 humanoid.Health = 0
+            else
+                debugLog("⚠️ Humanoid not found or already dead")
             end
+        else
+            debugLog("⏭️ Not a player (hit.Parent=" .. tostring(hit.Parent) .. ")")
         end
     end)
 

@@ -33,6 +33,27 @@ end
 print("[NoobAI] ✅ NPC parts found (Humanoid, HumanoidRootPart, Head)")
 
 -- =========================
+-- DEBUG: Check NPC Configuration
+-- =========================
+print("[NoobAI] 🔍 NPC Configuration:")
+print("[NoobAI]   Humanoid.Health = " .. humanoid.Health .. "/" .. humanoid.MaxHealth)
+print("[NoobAI]   Humanoid.WalkSpeed = " .. humanoid.WalkSpeed)
+print("[NoobAI]   HumanoidRootPart.Anchored = " .. tostring(hrp.Anchored))
+print("[NoobAI]   HumanoidRootPart.Position = " .. tostring(hrp.Position))
+
+-- ⚠️ CRITICAL: HumanoidRootPart CANNOT be anchored or NPC won't move!
+if hrp.Anchored then
+	warn("[NoobAI] ⚠️ WARNING: HumanoidRootPart is ANCHORED! Unanchoring...")
+	hrp.Anchored = false
+end
+
+-- Ensure humanoid is alive
+if humanoid.Health <= 0 then
+	warn("[NoobAI] ❌ Humanoid is DEAD! Respawning...")
+	humanoid.Health = humanoid.MaxHealth
+end
+
+-- =========================
 -- BOUNDS (do BKP - simples!)
 -- =========================
 print("[NoobAI] Searching for 'Stage2NpcKill' area...")
@@ -103,9 +124,17 @@ end
 -- Walk
 local walkAnim = Instance.new("Animation")
 walkAnim.AnimationId = "rbxassetid://180426354"
-local walkTrack = animator:LoadAnimation(walkAnim)
-walkTrack.Looped = true
-walkTrack.Priority = Enum.AnimationPriority.Movement
+local walkTrack = nil
+local success, err = pcall(function()
+	walkTrack = animator:LoadAnimation(walkAnim)
+	walkTrack.Looped = true
+	walkTrack.Priority = Enum.AnimationPriority.Movement
+end)
+if not success then
+	warn("[NoobAI] ❌ Failed to load walk animation: " .. tostring(err))
+else
+	print("[NoobAI] ✅ Walk animation loaded successfully")
+end
 
 -- 💃 Dance (random após kill)
 local DANCE_ANIMATIONS = {
@@ -123,9 +152,17 @@ local currentDanceTrack = nil
 -- 🧘 Meditation (idle)
 local meditateAnim = Instance.new("Animation")
 meditateAnim.AnimationId = "rbxassetid://2510196951"
-local meditateTrack = animator:LoadAnimation(meditateAnim)
-meditateTrack.Looped = true
-meditateTrack.Priority = Enum.AnimationPriority.Idle
+local meditateTrack = nil
+local success2, err2 = pcall(function()
+	meditateTrack = animator:LoadAnimation(meditateAnim)
+	meditateTrack.Looped = true
+	meditateTrack.Priority = Enum.AnimationPriority.Idle
+end)
+if not success2 then
+	warn("[NoobAI] ❌ Failed to load meditation animation: " .. tostring(err2))
+else
+	print("[NoobAI] ✅ Meditation animation loaded successfully")
+end
 
 local isWalking = false
 local isTaunting = false
@@ -232,14 +269,22 @@ end
 -- =========================
 local function startWalking()
 	if not isWalking and not isTaunting and not isMeditating then
-		walkTrack:Play()
-		isWalking = true
+		print("[NoobAI] 🚶 Starting walk animation")
+		if walkTrack then
+			walkTrack:Play()
+			isWalking = true
+		else
+			warn("[NoobAI] ❌ Cannot start walking - walkTrack is nil!")
+		end
 	end
 end
 
 local function stopWalking()
 	if isWalking then
-		walkTrack:Stop()
+		print("[NoobAI] 🛑 Stopping walk animation")
+		if walkTrack then
+			walkTrack:Stop()
+		end
 		isWalking = false
 	end
 end
@@ -247,8 +292,19 @@ end
 local function startMeditating()
 	if not isMeditating and not isTaunting and not isWalking then
 		print("[NoobAI] 🧘 Starting meditation...")
-		meditateTrack:Play()
-		isMeditating = true
+		if meditateTrack then
+			local success, err = pcall(function()
+				meditateTrack:Play()
+			end)
+			if not success then
+				warn("[NoobAI] ❌ Failed to play meditation: " .. tostring(err))
+			else
+				print("[NoobAI] ✅ Meditation animation playing")
+			end
+			isMeditating = true
+		else
+			warn("[NoobAI] ❌ Cannot start meditating - meditateTrack is nil!")
+		end
 		humanoid:MoveTo(hrp.Position)
 	end
 end
@@ -256,7 +312,9 @@ end
 local function stopMeditating()
 	if isMeditating then
 		print("[NoobAI] 🧘 Stopping meditation...")
-		meditateTrack:Stop()
+		if meditateTrack then
+			meditateTrack:Stop()
+		end
 		isMeditating = false
 	end
 end
@@ -466,21 +524,29 @@ end
 local function returnToCenter()
 	local dist = (hrp.Position - centerPosition).Magnitude
 
+	print("[NoobAI] 🏠 returnToCenter() | Distance=" .. math.floor(dist) .. " studs")
+
 	if dist > 10 then  -- ✅ Aumentei de 5 para 10 (zona morta maior)
+		print("[NoobAI] 🏃 Too far from center, walking back...")
 		stopMeditating()
 		humanoid.WalkSpeed = RETURN_SPEED
 		humanoid:MoveTo(centerPosition)
 		startWalking()
 	else
+		print("[NoobAI] ✅ At center (dist=" .. math.floor(dist) .. " <= 10)")
 		-- ✅ Só para de andar se estava andando
 		if isWalking then
+			print("[NoobAI] 🛑 Stopping walk, starting meditation...")
 			humanoid:MoveTo(hrp.Position)
 			stopWalking()
 		end
 
 		-- ✅ Só inicia meditação se NÃO está meditando
 		if not isMeditating then
+			print("[NoobAI] 🧘 Attempting to start meditation...")
 			startMeditating()
+		else
+			print("[NoobAI] 🧘 Already meditating")
 		end
 	end
 end
@@ -527,13 +593,29 @@ end)
 -- =========================
 -- MAIN LOOP
 -- =========================
+print("[NoobAI] 🎯 Starting main AI loop...")
+print("[NoobAI] NPC Health: " .. humanoid.Health .. "/" .. humanoid.MaxHealth)
+print("[NoobAI] NPC Position: " .. tostring(hrp.Position))
+print("[NoobAI] Center Position: " .. tostring(centerPosition))
+
+local loopCount = 0
 while true do
+	loopCount = loopCount + 1
+
+	if loopCount % 20 == 1 then  -- Log a cada ~3 segundos
+		print("[NoobAI] 🔄 Loop #" .. loopCount .. " | isTaunting=" .. tostring(isTaunting) .. " | Position=" .. tostring(hrp.Position))
+	end
+
 	if not isTaunting then
 		local target = getNearestPlayer()
 
 		if target then
+			print("[NoobAI] 🎯 Target found: " .. target.Name)
 			chasePlayer(target)
 		else
+			if loopCount % 20 == 1 then
+				print("[NoobAI] 💤 No target, returning to center...")
+			end
 			returnToCenter()
 		end
 	end

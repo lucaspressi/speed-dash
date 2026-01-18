@@ -21,7 +21,10 @@ local rateLimitStore = MemoryStoreService:GetSortedMap("AdminCommandRateLimit")
 -- Pure Lua implementation since Roblox doesn't provide native HMAC
 
 local function rightRotate(num, bits)
-	return bit32.band(bit32.bor(bit32.rshift(num, bits), bit32.lshift(num, 32 - bits)), 0xFFFFFFFF)
+	local rightShifted = bit32.rshift(num, bits)
+	local leftShifted = bit32.lshift(num, 32 - bits)
+	local combined = bit32.bor(rightShifted, leftShifted)
+	return bit32.band(combined, 0xFFFFFFFF)
 end
 
 local function sha256(data)
