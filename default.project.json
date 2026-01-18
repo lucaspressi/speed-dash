@@ -188,7 +188,7 @@
         "$className": "SpawnLocation",
         "$properties": {
           "Anchored": true,
-          "Position": [0, 1, 0],
+          "Position": [0, 1, 100],
           "Size": [6, 1, 6],
           "Transparency": 0,
           "CanCollide": true,

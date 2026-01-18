@@ -467,6 +467,9 @@ local function startChaseLoop()
 
 			if not isPlayerInArena(currentTarget) then
 				print("[NoobAI] 🏃 Target left arena")
+				print("[NoobAI] 📍 Player position: " .. tostring(targetHrp.Position))
+				print("[NoobAI] 📍 Arena center: " .. tostring(arenaCenter))
+				print("[NoobAI] 📏 Arena size: " .. tostring(arenaSize))
 				enterState(State.IDLE)
 				break
 			end
@@ -619,6 +622,13 @@ RunService.Heartbeat:Connect(function()
 	if currentState == State.IDLE then
 		local target = getNearestPlayerInArena()
 		if target then
+			local char = target.Character
+			if char then
+				local targetHrp = char:FindFirstChild("HumanoidRootPart")
+				if targetHrp then
+					print("[NoobAI] 🎯 Detected player: " .. target.Name .. " at " .. tostring(targetHrp.Position))
+				end
+			end
 			currentTarget = target
 			enterState(State.CHASING)
 		end
