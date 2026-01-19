@@ -74,6 +74,37 @@ humanoid.WalkSpeed = 100
 humanoid.JumpPower = 0 -- No jumping for NPC
 print("[NoobAI] ✅ WalkSpeed = 100, JumpPower = 0")
 
+-- 5.5. CRITICAL FIX: Calculate and lock correct HipHeight to prevent feet sinking
+local lowerTorso = noob:FindFirstChild("LowerTorso")
+local leftUpperLeg = noob:FindFirstChild("LeftUpperLeg")
+local leftLowerLeg = noob:FindFirstChild("LeftLowerLeg")
+local leftFoot = noob:FindFirstChild("LeftFoot")
+
+if lowerTorso and leftUpperLeg and leftLowerLeg and leftFoot then
+	local legHeight = leftUpperLeg.Size.Y + leftLowerLeg.Size.Y + leftFoot.Size.Y
+	local torsoHalf = lowerTorso.Size.Y / 2
+	local correctHipHeight = torsoHalf + legHeight
+
+	humanoid.HipHeight = correctHipHeight
+	print("[NoobAI] ✅ HipHeight calculated and set: " .. math.floor(correctHipHeight * 100) / 100)
+
+	-- Lock HipHeight - prevent it from being changed by Animate script or other systems
+	RunService.Heartbeat:Connect(function()
+		if humanoid and humanoid.Parent and math.abs(humanoid.HipHeight - correctHipHeight) > 0.01 then
+			humanoid.HipHeight = correctHipHeight
+		end
+	end)
+	print("[NoobAI] ✅ HipHeight locked (prevents feet sinking)")
+else
+	warn("[NoobAI] ⚠️ Could not calculate HipHeight - using default")
+	humanoid.HipHeight = 3.5
+end
+
+-- Ensure feet collide with ground
+if leftFoot then leftFoot.CanCollide = true end
+local rightFoot = noob:FindFirstChild("RightFoot")
+if rightFoot then rightFoot.CanCollide = true end
+
 -- 6. Remove any BodyMovers and constraints that might interfere
 for _, child in pairs(hrp:GetChildren()) do
 	if child:IsA("BodyMover") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") then
