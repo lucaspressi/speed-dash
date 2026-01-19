@@ -195,6 +195,9 @@ local function updateLeaderboardDisplay(orderedDataStore, surfaceGui)
 
             -- Set player avatar thumbnail
             if avatarImage and avatarImage:IsA("ImageLabel") then
+                -- Clear any existing image first
+                avatarImage.Image = ""
+
                 local thumbnailSuccess, thumbnailUrl = pcall(function()
                     return Players:GetUserThumbnailAsync(
                         tonumber(userId),
@@ -206,7 +209,8 @@ local function updateLeaderboardDisplay(orderedDataStore, surfaceGui)
                     avatarImage.Image = thumbnailUrl
                     print("[LeaderboardUpdater] 🖼️ Loaded avatar for " .. username)
                 else
-                    warn("[LeaderboardUpdater] ❌ Failed to get thumbnail for " .. username .. " (Error: " .. tostring(thumbnailUrl) .. ")")
+                    warn("[LeaderboardUpdater] ❌ Failed to get thumbnail for " .. username)
+                    -- Leave empty instead of showing placeholder
                     avatarImage.Image = ""
                 end
 
