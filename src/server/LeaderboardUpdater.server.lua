@@ -157,6 +157,7 @@ local function updateLeaderboardDisplay(orderedDataStore, surfaceGui)
 
     local namesFolder = surfaceGui:FindFirstChild("Names")
     local scoreFolder = surfaceGui:FindFirstChild("Score")
+    local avatarsFolder = surfaceGui:FindFirstChild("Avatars")
 
     if not namesFolder or not scoreFolder then
         warn("[LeaderboardUpdater] Missing Names or Score folder in surfaceGui")
@@ -166,6 +167,7 @@ local function updateLeaderboardDisplay(orderedDataStore, surfaceGui)
     for i = 1, 10 do
         local nameLabel = namesFolder:FindFirstChild("Name" .. i)
         local scoreLabel = scoreFolder:FindFirstChild("Score" .. i)
+        local avatarImage = avatarsFolder and avatarsFolder:FindFirstChild("Avatar" .. i)
 
         local entry = page[i]
 
@@ -183,10 +185,32 @@ local function updateLeaderboardDisplay(orderedDataStore, surfaceGui)
 
             if nameLabel then nameLabel.Text = username end
             if scoreLabel then scoreLabel.Text = formatNumber(score) end
+
+            -- Set player avatar thumbnail
+            if avatarImage and avatarImage:IsA("ImageLabel") then
+                local thumbnailSuccess, thumbnailUrl = pcall(function()
+                    return Players:GetUserThumbnailAsync(
+                        tonumber(userId),
+                        Enum.ThumbnailType.HeadShot,
+                        Enum.ThumbnailSize.Size48x48
+                    )
+                end)
+                if thumbnailSuccess and thumbnailUrl then
+                    avatarImage.Image = thumbnailUrl
+                else
+                    warn("[LeaderboardUpdater] Failed to get thumbnail for " .. username)
+                    -- Reset to default Roblox icon if available
+                    avatarImage.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+                end
+            end
+
             print("[LeaderboardUpdater] Position " .. i .. ": " .. username .. " - " .. formatNumber(score))
         else
             if nameLabel then nameLabel.Text = "---" end
             if scoreLabel then scoreLabel.Text = "0" end
+            if avatarImage and avatarImage:IsA("ImageLabel") then
+                avatarImage.Image = ""
+            end
         end
     end
 end
