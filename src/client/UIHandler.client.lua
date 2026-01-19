@@ -380,16 +380,44 @@ local function updateUI(data)
 		if data.AtRebirthCap then
 			local nextTier = rebirthTiers[data.Rebirths + 1]
 			if nextTier then
-				xpText.Text = "REBIRTH TO CONTINUE!"
+				xpText.Text = "⚠️ REBIRTH TO CONTINUE! ⚠️"
 				xpText.TextColor3 = Color3.fromRGB(255, 215, 0)  -- Dourado
+				xpText.TextScaled = true
+
+				-- ✅ Animação de pulsação para chamar atenção
+				if xpText:FindFirstChild("PulseAnimation") then
+					xpText.PulseAnimation:Destroy()
+				end
+				local pulseAnim = TweenService:Create(xpText, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+					TextTransparency = 0.3
+				})
+				pulseAnim.Name = "PulseAnimation"
+				pulseAnim:Play()
 			end
 		else
 			xpText.Text = formatNumber(data.XP) .. "/" .. formatNumber(data.XPRequired)
 			xpText.TextColor3 = Color3.fromRGB(255, 255, 255)  -- Branco
+			xpText.TextTransparency = 0  -- Remove transparência
+
+			-- Remove animação se existir
+			if xpText:FindFirstChild("PulseAnimation") then
+				xpText.PulseAnimation:Destroy()
+			end
 		end
 	end
 
 	local progress = data.XP / data.XPRequired
+	-- ✅ Se está no cap, barra de progresso fica em 100% e dourada
+	if data.AtRebirthCap then
+		progress = 1  -- 100%
+		if progressFill then
+			progressFill.BackgroundColor3 = Color3.fromRGB(255, 215, 0)  -- Dourada
+		end
+	else
+		if progressFill then
+			progressFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)  -- Azul normal
+		end
+	end
 	tweenProgress(UDim2.new(progress, 0, 1, 0))
 
 	if rebirthModal and rebirthModal.Visible then

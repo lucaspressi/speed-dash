@@ -308,6 +308,7 @@ local function checkLevelUp(data)
 		-- ✅ Verifica se atingiu o cap de rebirth
 		if isAtRebirthCap(data.Level, data.Rebirths) then
 			data.AtRebirthCap = true  -- Flag para UI
+			data.XP = 0  -- ✅ Descarta XP excedente para não passar do cap
 			break  -- Para de level up
 		end
 	end
