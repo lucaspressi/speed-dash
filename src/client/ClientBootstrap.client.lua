@@ -1133,13 +1133,42 @@ end)
 -- 🎨 EFEITO VISUAL QUANDO LASER DEIXA PLAYER LENTO
 local NpcLaserSlowEffect = Remotes:WaitForChild("NpcLaserSlowEffect")
 NpcLaserSlowEffect.OnClientEvent:Connect(function(duration)
-	print("[CLIENT] Laser slow effect triggered!")
+	print("[CLIENT] Laser slow effect triggered! Duration: " .. tostring(duration) .. "s")
 
 	local character = player.Character
 	if not character then return end
 
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
+
+	-- 📢 Mensagem na tela "YOU ARE SLOWED!"
+	local playerGui = player:WaitForChild("PlayerGui")
+	local slowGui = Instance.new("ScreenGui")
+	slowGui.Name = "SlowEffectGui"
+	slowGui.ResetOnSpawn = false
+	slowGui.Parent = playerGui
+
+	local slowLabel = Instance.new("TextLabel")
+	slowLabel.Name = "SlowLabel"
+	slowLabel.Size = UDim2.new(0, 400, 0, 80)
+	slowLabel.Position = UDim2.new(0.5, -200, 0.3, 0)
+	slowLabel.BackgroundTransparency = 0.5
+	slowLabel.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+	slowLabel.BorderSizePixel = 0
+	slowLabel.Text = "⚠️ YOU ARE SLOWED! ⚠️"
+	slowLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	slowLabel.TextSize = 32
+	slowLabel.Font = Enum.Font.GothamBold
+	slowLabel.TextStrokeTransparency = 0.5
+	slowLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	slowLabel.Parent = slowGui
+
+	-- Adiciona canto arredondado
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 12)
+	corner.Parent = slowLabel
+
+	print("[CLIENT] 📢 Slow message displayed!")
 
 	-- 🔴 Cria partículas vermelhas ao redor do player
 	local particles = Instance.new("ParticleEmitter")
@@ -1183,7 +1212,13 @@ NpcLaserSlowEffect.OnClientEvent:Connect(function(duration)
 	-- slowSound:Play()
 
 	-- ⏱️ Remove efeitos após a duração
-	task.delay(duration, function()
+	task.delay(duration or 0.5, function()
+		-- Remove mensagem da tela
+		if slowGui and slowGui.Parent then
+			slowGui:Destroy()
+			print("[CLIENT] 📢 Slow message removed!")
+		end
+
 		if particles and particles.Parent then
 			particles.Enabled = false
 			task.delay(1, function() particles:Destroy() end)

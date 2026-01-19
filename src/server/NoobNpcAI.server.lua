@@ -184,8 +184,8 @@ local LASER_COOLDOWN_MIN = 6
 local LASER_COOLDOWN_MAX = 10
 local LASER_CHARGE_TIME = 0.4
 local LASER_BEAM_DURATION = 0.6
-local LASER_SLOW_MULTIPLIER = 0.2
-local LASER_SLOW_DURATION = 0.5
+local LASER_SLOW_MULTIPLIER = 0.3  -- 30% da velocidade original (era 0.2 = 20%)
+local LASER_SLOW_DURATION = 3.0     -- 3 segundos (era 0.5s)
 local LASER_CHANCE_PER_TICK = 0.3
 
 -- Taunt
@@ -541,8 +541,9 @@ local function fireLaser(targetHrp)
 				local originalSpeed = hitHumanoid.WalkSpeed
 				hitHumanoid.WalkSpeed = originalSpeed * LASER_SLOW_MULTIPLIER
 
-				-- Fire client event
-				NpcLaserSlowEffect:FireClient(hitPlayer)
+				-- Fire client event with duration
+				print("[NoobAI] 📡 Sending slow effect to client (duration: " .. LASER_SLOW_DURATION .. "s)")
+				NpcLaserSlowEffect:FireClient(hitPlayer, LASER_SLOW_DURATION)
 
 				task.delay(LASER_SLOW_DURATION, function()
 					if hitHumanoid then
