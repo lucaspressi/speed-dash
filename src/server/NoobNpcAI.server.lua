@@ -79,31 +79,69 @@ local lowerTorso = noob:FindFirstChild("LowerTorso")
 local leftUpperLeg = noob:FindFirstChild("LeftUpperLeg")
 local leftLowerLeg = noob:FindFirstChild("LeftLowerLeg")
 local leftFoot = noob:FindFirstChild("LeftFoot")
+local rightFoot = noob:FindFirstChild("RightFoot")
 
 if lowerTorso and leftUpperLeg and leftLowerLeg and leftFoot then
+	-- Calculate base HipHeight from leg components
 	local legHeight = leftUpperLeg.Size.Y + leftLowerLeg.Size.Y + leftFoot.Size.Y
 	local torsoHalf = lowerTorso.Size.Y / 2
-	local correctHipHeight = torsoHalf + legHeight
+	local baseHipHeight = torsoHalf + legHeight
+
+	-- Add small offset to ensure feet don't sink (compensate for joint compression)
+	local FOOT_OFFSET = 0.3  -- Extra height to prevent sinking
+	local correctHipHeight = baseHipHeight + FOOT_OFFSET
 
 	humanoid.HipHeight = correctHipHeight
-	print("[NoobAI] ✅ HipHeight calculated and set: " .. math.floor(correctHipHeight * 100) / 100)
+	humanoid.AutoRotate = true  -- Keep AutoRotate for proper turning
 
-	-- Lock HipHeight - prevent it from being changed by Animate script or other systems
+	print("[NoobAI] ✅ HipHeight set: " .. math.floor(correctHipHeight * 100) / 100 .. " (base: " .. math.floor(baseHipHeight * 100) / 100 .. " + offset: " .. FOOT_OFFSET .. ")")
+
+	-- AGGRESSIVE LOCK: Prevent HipHeight changes and enforce position
+	local lastGroundY = nil
 	RunService.Heartbeat:Connect(function()
-		if humanoid and humanoid.Parent and math.abs(humanoid.HipHeight - correctHipHeight) > 0.01 then
+		if not humanoid or not humanoid.Parent or not hrp or not hrp.Parent then return end
+
+		-- Lock HipHeight
+		if math.abs(humanoid.HipHeight - correctHipHeight) > 0.01 then
 			humanoid.HipHeight = correctHipHeight
 		end
+
+		-- Additional fix: If feet are sinking, adjust HRP position upward
+		if leftFoot and leftFoot.Parent then
+			local rayOrigin = hrp.Position
+			local rayDirection = Vector3.new(0, -correctHipHeight - 2, 0)
+			local raycastParams = RaycastParams.new()
+			raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+			raycastParams.FilterDescendantsInstances = {noob}
+
+			local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+			if rayResult then
+				local groundY = rayResult.Position.Y
+				local targetHrpY = groundY + correctHipHeight
+				local currentHrpY = hrp.Position.Y
+
+				-- If HRP is too low (feet sinking), push it up
+				if currentHrpY < targetHrpY - 0.2 then
+					hrp.CFrame = CFrame.new(hrp.Position.X, targetHrpY, hrp.Position.Z) * (hrp.CFrame - hrp.CFrame.Position)
+				end
+			end
+		end
 	end)
-	print("[NoobAI] ✅ HipHeight locked (prevents feet sinking)")
+	print("[NoobAI] ✅ HipHeight locked + position enforcer active")
 else
 	warn("[NoobAI] ⚠️ Could not calculate HipHeight - using default")
 	humanoid.HipHeight = 3.5
 end
 
--- Ensure feet collide with ground
-if leftFoot then leftFoot.CanCollide = true end
-local rightFoot = noob:FindFirstChild("RightFoot")
-if rightFoot then rightFoot.CanCollide = true end
+-- Ensure feet collide with ground and have proper physics
+if leftFoot then
+	leftFoot.CanCollide = true
+	leftFoot.Massless = false
+end
+if rightFoot then
+	rightFoot.CanCollide = true
+	rightFoot.Massless = false
+end
 
 -- 6. Remove any BodyMovers and constraints that might interfere
 for _, child in pairs(hrp:GetChildren()) do
