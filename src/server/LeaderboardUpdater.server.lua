@@ -199,17 +199,19 @@ local function updateLeaderboardDisplay(orderedDataStore, surfaceGui)
                     return Players:GetUserThumbnailAsync(
                         tonumber(userId),
                         Enum.ThumbnailType.HeadShot,
-                        Enum.ThumbnailSize.Size48x48
+                        Enum.ThumbnailSize.Size150x150
                     )
                 end)
-                if thumbnailSuccess and thumbnailUrl then
+                if thumbnailSuccess and thumbnailUrl and thumbnailUrl ~= "" then
                     avatarImage.Image = thumbnailUrl
                     print("[LeaderboardUpdater] 🖼️ Loaded avatar for " .. username)
                 else
-                    warn("[LeaderboardUpdater] ❌ Failed to get thumbnail for " .. username)
-                    -- Reset to default Roblox icon if available
-                    avatarImage.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+                    warn("[LeaderboardUpdater] ❌ Failed to get thumbnail for " .. username .. " (Error: " .. tostring(thumbnailUrl) .. ")")
+                    avatarImage.Image = ""
                 end
+
+                -- Small delay to avoid rate limiting
+                task.wait(0.1)
             elseif avatarsFolder then
                 warn("[LeaderboardUpdater] ⚠️ Avatar" .. i .. " ImageLabel not found or is not an ImageLabel!")
             end
