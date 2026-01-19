@@ -285,6 +285,9 @@ local function updateLeaderstats(player, data)
 
 	local winsStat = leaderstats:FindFirstChild("Wins")
 	if winsStat then winsStat.Value = data.Wins end
+
+	local rebirthsStat = leaderstats:FindFirstChild("Rebirths")
+	if rebirthsStat then rebirthsStat.Value = data.Rebirths end
 end
 
 local function checkLevelUp(data)
@@ -374,6 +377,11 @@ local function onPlayerAdded(player)
 		winsStat.Name = "Wins"
 		winsStat.Value = data.Wins
 		winsStat.Parent = leaderstats
+
+		local rebirthsStat = Instance.new("IntValue")
+		rebirthsStat.Name = "Rebirths"
+		rebirthsStat.Value = data.Rebirths
+		rebirthsStat.Parent = leaderstats
 
 		-- ✅ Send initial UI update after a small delay to ensure client is ready
 		task.delay(0.5, function()
