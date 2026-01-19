@@ -74,66 +74,34 @@ humanoid.WalkSpeed = 100
 humanoid.JumpPower = 0 -- No jumping for NPC
 print("[NoobAI] ✅ WalkSpeed = 100, JumpPower = 0")
 
--- 5.5. CRITICAL FIX: Calculate and lock correct HipHeight to prevent feet sinking
-local lowerTorso = noob:FindFirstChild("LowerTorso")
-local leftUpperLeg = noob:FindFirstChild("LeftUpperLeg")
-local leftLowerLeg = noob:FindFirstChild("LeftLowerLeg")
+-- 5.5. CORRECT FIX: Use GetExtentsSize() method (FROM DEVFORUM)
+-- This automatically calculates the correct HipHeight for ANY character model
+-- Source: https://devforum.roblox.com/t/how-do-i-accurately-recalculate-a-characters-hip-height-for-r15/1461562
+
+-- Method: GetExtentsSize() returns the bounding box of the entire character
+local extentsSize = noob:GetExtentsSize()
+local hrpSize = hrp.Size
+local correctHipHeight = extentsSize.Y - hrpSize.Y - (hrpSize.Y / 2)
+
+humanoid.HipHeight = correctHipHeight
+humanoid.AutoRotate = true
+
+print("[NoobAI] ✅ HipHeight calculated using GetExtentsSize() method")
+print("[NoobAI]   Character ExtentsSize.Y: " .. math.floor(extentsSize.Y * 100) / 100)
+print("[NoobAI]   HRP Size.Y: " .. math.floor(hrpSize.Y * 100) / 100)
+print("[NoobAI]   Final HipHeight: " .. math.floor(correctHipHeight * 100) / 100)
+
+-- Lock HipHeight to prevent Animate script from changing it
+RunService.Heartbeat:Connect(function()
+	if humanoid and humanoid.Parent and math.abs(humanoid.HipHeight - correctHipHeight) > 0.01 then
+		humanoid.HipHeight = correctHipHeight
+	end
+end)
+print("[NoobAI] ✅ HipHeight locked (prevents external changes)")
+
+-- Ensure feet physics are correct
 local leftFoot = noob:FindFirstChild("LeftFoot")
 local rightFoot = noob:FindFirstChild("RightFoot")
-
-if lowerTorso and leftUpperLeg and leftLowerLeg and leftFoot then
-	-- Calculate base HipHeight from leg components
-	local legHeight = leftUpperLeg.Size.Y + leftLowerLeg.Size.Y + leftFoot.Size.Y
-	local torsoHalf = lowerTorso.Size.Y / 2
-	local baseHipHeight = torsoHalf + legHeight
-
-	-- Add small offset to ensure feet don't sink (compensate for joint compression)
-	local FOOT_OFFSET = 0.3  -- Extra height to prevent sinking
-	local correctHipHeight = baseHipHeight + FOOT_OFFSET
-
-	humanoid.HipHeight = correctHipHeight
-	humanoid.AutoRotate = true  -- Keep AutoRotate for proper turning
-
-	print("[NoobAI] ✅ HipHeight set: " .. math.floor(correctHipHeight * 100) / 100 .. " (base: " .. math.floor(baseHipHeight * 100) / 100 .. " + offset: " .. FOOT_OFFSET .. ")")
-
-	-- AGGRESSIVE LOCK: Prevent HipHeight changes and enforce position
-	local lastGroundY = nil
-	RunService.Heartbeat:Connect(function()
-		if not humanoid or not humanoid.Parent or not hrp or not hrp.Parent then return end
-
-		-- Lock HipHeight
-		if math.abs(humanoid.HipHeight - correctHipHeight) > 0.01 then
-			humanoid.HipHeight = correctHipHeight
-		end
-
-		-- Additional fix: If feet are sinking, adjust HRP position upward
-		if leftFoot and leftFoot.Parent then
-			local rayOrigin = hrp.Position
-			local rayDirection = Vector3.new(0, -correctHipHeight - 2, 0)
-			local raycastParams = RaycastParams.new()
-			raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-			raycastParams.FilterDescendantsInstances = {noob}
-
-			local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-			if rayResult then
-				local groundY = rayResult.Position.Y
-				local targetHrpY = groundY + correctHipHeight
-				local currentHrpY = hrp.Position.Y
-
-				-- If HRP is too low (feet sinking), push it up
-				if currentHrpY < targetHrpY - 0.2 then
-					hrp.CFrame = CFrame.new(hrp.Position.X, targetHrpY, hrp.Position.Z) * (hrp.CFrame - hrp.CFrame.Position)
-				end
-			end
-		end
-	end)
-	print("[NoobAI] ✅ HipHeight locked + position enforcer active")
-else
-	warn("[NoobAI] ⚠️ Could not calculate HipHeight - using default")
-	humanoid.HipHeight = 3.5
-end
-
--- Ensure feet collide with ground and have proper physics
 if leftFoot then
 	leftFoot.CanCollide = true
 	leftFoot.Massless = false
