@@ -159,7 +159,7 @@ warn("[NoobAI] ✅ Arena validation skipped - using existing arena configuration
 -- CONFIG
 -- =========================
 -- Movement
-local CHASE_SPEED = 150 -- Increased for scaled NPCs
+local CHASE_SPEED = 250 -- NEXTBOT STYLE - Very fast direct chase
 local IDLE_SPEED = 16
 local DETECTION_RANGE = 200
 local PATHFINDING_UPDATE = 1.0 -- Recalculate path every 1 second
@@ -377,11 +377,11 @@ local function createPathTo(targetPosition)
 end
 
 -- =========================
--- MOVEMENT SYSTEM (FIXED - Using Humanoid:MoveTo)
+-- MOVEMENT SYSTEM (NEXTBOT STYLE - Direct CFrame Movement)
 -- =========================
 local movementConnection = nil
 local currentMoveTarget = nil
-local moveReachedConnection = nil
+local GROUND_Y = 7 -- Keep NPC at ground level
 
 local function startMovingToPosition(targetPos)
 	-- Stop old movement
@@ -390,16 +390,11 @@ local function startMovingToPosition(targetPos)
 		movementConnection = nil
 	end
 
-	if moveReachedConnection then
-		moveReachedConnection:Disconnect()
-		moveReachedConnection = nil
-	end
+	-- Keep target at ground level
+	targetPos = Vector3.new(targetPos.X, GROUND_Y, targetPos.Z)
+	currentMoveTarget = targetPos
 
-	print("[NoobAI] 🎯 Starting movement to: " .. tostring(targetPos))
-	print("[NoobAI] 📍 Current position: " .. tostring(hrp.Position))
-
-	local distance = (targetPos - hrp.Position).Magnitude
-	print("[NoobAI] 📏 Distance to target: " .. math.floor(distance) .. " studs")
+	print("[NoobAI] 🎯 Moving to: " .. tostring(targetPos))
 
 	-- Validate target position is in arena
 	if not isPositionInArena(targetPos) then
@@ -407,24 +402,8 @@ local function startMovingToPosition(targetPos)
 		return
 	end
 
-	currentMoveTarget = targetPos
-
-	-- Use Humanoid:MoveTo for proper physics-based movement
-	humanoid:MoveTo(targetPos)
-
-	-- Debug: Check if velocity changes after MoveTo
-	task.delay(0.1, function()
-		local velocity = hrp.AssemblyLinearVelocity
-		print("[NoobAI] 🏃 Velocity after MoveTo: " .. tostring(velocity) .. " (Magnitude: " .. math.floor(velocity.Magnitude) .. ")")
-	end)
-
-	-- Monitor movement and retry if stuck
-	local moveStartTime = tick()
-	local lastPosition = hrp.Position
-	local stuckCheckInterval = 0.5
-	local lastStuckCheck = tick()
-
-	movementConnection = RunService.Heartbeat:Connect(function()
+	-- Nextbot-style movement: Move directly towards target using CFrame
+	movementConnection = RunService.Heartbeat:Connect(function(deltaTime)
 		if currentState ~= State.CHASING then
 			if movementConnection then
 				movementConnection:Disconnect()
@@ -433,50 +412,38 @@ local function startMovingToPosition(targetPos)
 			return
 		end
 
-		-- CRITICAL: Check if NPC is still in arena
-		if not isPositionInArena(hrp.Position) then
-			warn("[NoobAI] ⚠️ NPC escaped arena! Force teleporting back to ground level")
-			local groundPosition = Vector3.new(arenaCenter.X, arenaCenter.Y - 20, arenaCenter.Z)
-			hrp.CFrame = CFrame.new(groundPosition)
-			hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-			enterState(State.IDLE)
+		-- Get current position (but force ground level)
+		local currentPos = Vector3.new(hrp.Position.X, GROUND_Y, hrp.Position.Z)
+
+		-- Calculate direction to target
+		local direction = (currentMoveTarget - currentPos).Unit
+		local distance = (currentMoveTarget - currentPos).Magnitude
+
+		-- If we're close enough, consider reached
+		if distance < 4 then
+			return -- Chase loop will handle next waypoint
+		end
+
+		-- Calculate movement speed (studs per second)
+		local speed = CHASE_SPEED
+		local moveAmount = direction * speed * deltaTime
+
+		-- Calculate new position
+		local newPos = currentPos + moveAmount
+
+		-- Keep within arena bounds
+		if not isPositionInArena(newPos) then
+			-- Stop at arena edge
 			return
 		end
 
-		-- Check if we're stuck (not moving)
-		local now = tick()
-		if now - lastStuckCheck >= stuckCheckInterval then
-			local distanceMoved = (hrp.Position - lastPosition).Magnitude
-
-			if distanceMoved < 0.5 then
-				-- We're stuck! Retry MoveTo command
-				print("[NoobAI] ⚠️ NPC appears stuck, retrying MoveTo command")
-				if currentMoveTarget and isPositionInArena(currentMoveTarget) then
-					humanoid:MoveTo(currentMoveTarget)
-				end
-			end
-
-			lastPosition = hrp.Position
-			lastStuckCheck = now
+		-- Move NPC using CFrame (maintains Y level, ignores physics)
+		local lookDirection = Vector3.new(direction.X, 0, direction.Z).Unit
+		if lookDirection.Magnitude > 0 then
+			hrp.CFrame = CFrame.new(newPos, newPos + lookDirection)
+		else
+			hrp.CFrame = CFrame.new(newPos)
 		end
-
-		-- Check if we reached the target (within 4 studs)
-		if currentMoveTarget then
-			local distance = (currentMoveTarget - hrp.Position).Magnitude
-			if distance < 4 then
-				-- Reached target, movement system will be updated by chase loop
-				if movementConnection then
-					movementConnection:Disconnect()
-					movementConnection = nil
-				end
-			end
-		end
-	end)
-
-	-- Backup: Listen for MoveToFinished event
-	moveReachedConnection = humanoid.MoveToFinished:Connect(function(reached)
-		print("[NoobAI] 📍 MoveToFinished: reached=" .. tostring(reached))
-		-- Chase loop will handle next waypoint
 	end)
 end
 
@@ -486,17 +453,9 @@ local function stopMovement()
 		movementConnection = nil
 	end
 
-	if moveReachedConnection then
-		moveReachedConnection:Disconnect()
-		moveReachedConnection = nil
-	end
-
 	currentMoveTarget = nil
 
-	-- Stop the Humanoid
-	humanoid:MoveTo(hrp.Position)
-
-	-- Zero out velocity to ensure complete stop
+	-- Zero out velocity
 	if hrp:IsA("BasePart") then
 		hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
 		hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
@@ -620,8 +579,7 @@ end
 -- =========================
 local function startChaseLoop()
 	pathfindingCoroutine = coroutine.create(function()
-		print("[NoobAI] 🏃 Chase loop STARTED (using PathfindingService)")
-		local lastPathUpdate = 0
+		print("[NoobAI] 🏃 Chase loop STARTED (NEXTBOT DIRECT CHASE)")
 
 		while currentState == State.CHASING do
 			if not currentTarget or not currentTarget.Character then
@@ -640,75 +598,19 @@ local function startChaseLoop()
 			end
 
 			if not isPlayerInArena(currentTarget) then
-				print("[NoobAI] 🏃 Target left arena at: " .. tostring(targetHrp.Position))
+				print("[NoobAI] 🏃 Target left arena")
 				enterState(State.IDLE)
 				break
 			end
 
-			-- CRITICAL: Don't chase targets outside arena
-			if not isPositionInArena(targetHrp.Position) then
-				warn("[NoobAI] ⚠️ Target is OUTSIDE arena bounds - aborting chase")
-				enterState(State.IDLE)
-				break
-			end
-
-			-- Update path periodically
-			local now = tick()
-			if now - lastPathUpdate >= PATHFINDING_UPDATE then
-				-- Only pathfind to positions INSIDE arena
-				if isPositionInArena(targetHrp.Position) then
-					local waypoints = createPathTo(targetHrp.Position)
-					if waypoints and #waypoints > 0 then
-						currentPath = waypoints
-						waypointIndex = 2 -- Skip first waypoint (current position)
-						lastPathUpdate = now
-						print("[NoobAI] 🗺️ Path updated: " .. #waypoints .. " waypoints")
-					else
-						-- Fallback: move directly (only if in arena)
-						startMovingToPosition(targetHrp.Position)
-					end
-				else
-					warn("[NoobAI] ⚠️ Cannot pathfind to position outside arena")
-					enterState(State.IDLE)
-					break
-				end
-			end
-
-			-- Follow path
-			if currentPath and waypointIndex <= #currentPath then
-				local waypoint = currentPath[waypointIndex]
-
-				-- CRITICAL: Verify waypoint is in arena
-				if not isPositionInArena(waypoint.Position) then
-					warn("[NoobAI] ⚠️ Waypoint " .. waypointIndex .. " is OUTSIDE arena! Aborting path")
-					currentPath = nil
-					enterState(State.IDLE)
-					break
-				end
-
-				local distance = (waypoint.Position - hrp.Position).Magnitude
-				print("[NoobAI] 🚶 Following waypoint " .. waypointIndex .. "/" .. #currentPath .. " - Distance: " .. math.floor(distance) .. " studs")
-
-				if distance < 4 then
-					waypointIndex = waypointIndex + 1
-					print("[NoobAI] ✅ Reached waypoint " .. (waypointIndex - 1))
-				else
-					-- Only issue new MoveTo if we don't have an active movement to this waypoint
-					if currentMoveTarget ~= waypoint.Position then
-						startMovingToPosition(waypoint.Position)
-					end
-				end
+			-- NEXTBOT STYLE: Move directly towards player (no pathfinding)
+			if isPositionInArena(targetHrp.Position) then
+				-- Update target position for movement system
+				startMovingToPosition(targetHrp.Position)
 			else
-				-- No path, move directly (only if target in arena)
-				if isPositionInArena(targetHrp.Position) then
-					if currentMoveTarget ~= targetHrp.Position then
-						startMovingToPosition(targetHrp.Position)
-					end
-				else
-					warn("[NoobAI] ⚠️ No valid path - target outside arena")
-					enterState(State.IDLE)
-					break
-				end
+				warn("[NoobAI] ⚠️ Target outside arena")
+				enterState(State.IDLE)
+				break
 			end
 
 			-- Try to fire laser
@@ -770,9 +672,8 @@ enterState = function(newState)
 		print("[NoobAI] 🧘 Entering IDLE - returning to center")
 		humanoid.WalkSpeed = IDLE_SPEED
 
-		-- Teleport to center at GROUND LEVEL (subtract 20 studs to reach waypoint level)
-		-- This fixes pathfinding issues when NPC spawns 32 studs above waypoints
-		local groundPosition = Vector3.new(arenaCenter.X, arenaCenter.Y - 20, arenaCenter.Z)
+		-- Teleport to center at GROUND LEVEL
+		local groundPosition = Vector3.new(arenaCenter.X, GROUND_Y, arenaCenter.Z)
 		hrp.CFrame = CFrame.new(groundPosition)
 		print("[NoobAI] 📍 Teleported to ground level: " .. tostring(hrp.Position))
 
@@ -870,7 +771,7 @@ RunService.Heartbeat:Connect(function()
 		end
 
 		-- Force teleport back to ground level
-		local groundPosition = Vector3.new(arenaCenter.X, arenaCenter.Y - 20, arenaCenter.Z)
+		local groundPosition = Vector3.new(arenaCenter.X, GROUND_Y, arenaCenter.Z)
 		hrp.CFrame = CFrame.new(groundPosition)
 		if currentState ~= State.IDLE then
 			enterState(State.IDLE)
@@ -924,7 +825,7 @@ print("[NoobAI] 🔫 Laser enabled: " .. tostring(LASER_ENABLED))
 
 -- CRITICAL: Teleport NPC to arena center at GROUND LEVEL
 print("[NoobAI] 📦 Teleporting NPC to arena ground level...")
-local groundPosition = Vector3.new(arenaCenter.X, arenaCenter.Y - 20, arenaCenter.Z)
+local groundPosition = Vector3.new(arenaCenter.X, GROUND_Y, arenaCenter.Z)
 hrp.CFrame = CFrame.new(groundPosition)
 task.wait(0.5) -- Delay to ensure physics fully settle
 print("[NoobAI] ✅ NPC teleported to ground level: " .. tostring(hrp.Position))
