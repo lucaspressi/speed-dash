@@ -66,6 +66,7 @@ local VALID_MULTIPLIERS = {
 -- ==================== MODULES ====================
 -- ✅ PATCH: Progression system now uses centralized ProgressionMath
 local ProgressionMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ProgressionMath"))
+local ProgressionConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ProgressionConfig"))
 
 -- ==================== DATASTORE2 ====================
 local DataStore2 = require(ServerScriptService:WaitForChild("DataStore2"))
@@ -124,18 +125,8 @@ local VisualEffectCooldowns = {} -- Per-player cooldown for +XP visual effect (U
 local spawnLocation = workspace:FindFirstChild("SpawnLocation", true)
 local spawnPosition = spawnLocation and spawnLocation.Position or Vector3.new(0, 10, 0)
 
-local rebirthTiers = {
-	{level = 25, multiplier = 1.5},
-	{level = 50, multiplier = 2.0},
-	{level = 100, multiplier = 2.5},
-	{level = 150, multiplier = 3.0},
-	{level = 200, multiplier = 3.5},
-	{level = 300, multiplier = 4.0},
-	{level = 500, multiplier = 5.0},
-	{level = 750, multiplier = 6.0},
-	{level = 1000, multiplier = 7.5},
-	{level = 1500, multiplier = 10.0},
-}
+-- ✅ Import rebirth tiers from ProgressionConfig (single source of truth)
+local rebirthTiers = ProgressionConfig.REBIRTH_TIERS
 
 -- ==================== FUNÇÕES UTILITÁRIAS ====================
 local function debugPrint(category, message)
@@ -145,6 +136,24 @@ end
 -- ✅ PATCH: Now uses ProgressionMath (centralized formula)
 local function getXPForLevel(level)
 	return ProgressionMath.XPRequired(level)
+end
+
+-- ✅ Retorna o tier de rebirth que o player deve alcançar
+local function getNextRebirthTier(rebirths)
+	local nextTierIndex = (rebirths or 0) + 1
+	if nextTierIndex > #rebirthTiers then
+		return nil  -- Player já está no último tier
+	end
+	return rebirthTiers[nextTierIndex]
+end
+
+-- ✅ Verifica se player atingiu o level cap do seu rebirth tier
+local function isAtRebirthCap(level, rebirths)
+	local nextTier = getNextRebirthTier(rebirths)
+	if not nextTier then
+		return false  -- Não há cap se já está no último tier
+	end
+	return level >= nextTier.level
 end
 
 -- Level 0 = 1x, 1=2x, 2=4x, 3=8x...
@@ -295,6 +304,12 @@ local function checkLevelUp(data)
 		data.XP -= data.XPRequired
 		data.Level += 1
 		data.XPRequired = getXPForLevel(data.Level)
+
+		-- ✅ Verifica se atingiu o cap de rebirth
+		if isAtRebirthCap(data.Level, data.Rebirths) then
+			data.AtRebirthCap = true  -- Flag para UI
+			break  -- Para de level up
+		end
 	end
 end
 
@@ -700,6 +715,12 @@ UpdateSpeedEvent.OnServerEvent:Connect(function(player, steps, clientMultiplier)
 		return
 	end
 
+	-- ✅ REBIRTH CAP CHECK: Block XP gain if at rebirth tier level
+	if isAtRebirthCap(data.Level, data.Rebirths) then
+		debugPrint("XP_GAIN", player.Name .. " is at rebirth cap (Level " .. data.Level .. ") - XP blocked")
+		return
+	end
+
 	steps = steps or 1
 	clientMultiplier = clientMultiplier or nil  -- nil = novo protocolo, não enviou
 
@@ -883,12 +904,13 @@ RebirthEvent.OnServerEvent:Connect(function(player)
 	local nextTier = rebirthTiers[nextTierIndex]
 	if data.Level >= nextTier.level then
 		data.Rebirths = nextTierIndex
-		data.Multiplier = nextTier.multiplier
+		data.Multiplier = nextTier.multiplier  -- ✅ Rebirth multiplier
 		data.Level = 1
 		data.XP = 0
-		data.TotalXP = 0
+		data.TotalXP = 0  -- ✅ Reset speed display (intencional)
 		data.XPRequired = getXPForLevel(data.Level)
-		data.StepBonus = nextTier.multiplier
+		data.AtRebirthCap = false  -- ✅ Limpa o bloqueio após rebirth
+		-- ✅ StepBonus NÃO é modificado - preserva Step Award equipado (baseado em wins)
 
 		updateWalkSpeed(player, data)
 

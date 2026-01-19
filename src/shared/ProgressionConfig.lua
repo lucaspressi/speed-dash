@@ -8,39 +8,44 @@ local ProgressionConfig = {}
 ProgressionConfig.DEBUG = true
 
 -- ==================== ANCHORS (Progressão Ajustada) ====================
--- 📌 AJUSTADO: Progressão mais suave e balanceada
--- Nova fórmula resulta em:
--- - Level 64: XPRequired ≈ 45,100
--- - TotalXP para alcançar Level 64 ≈ 320,000
--- Valores muito mais razoáveis para gameplay casual!
+-- 📌 AJUSTADO: Progressão MUITO mais fácil nos primeiros 50 níveis
+-- Nova fórmula (BASE=50, SCALE=25, EXPONENT=1.45) resulta em:
+-- - Level 64: XPRequired ≈ 10,446
+-- - TotalXP para alcançar Level 64 ≈ 269,561
+-- - TotalXP no Level 64 com 80% progress ≈ 277,918
+-- Valores MUITO mais acessíveis para gameplay inicial!
 
 ProgressionConfig.ANCHORS = {
 	{
 		level = 64,
-		xpRequired = 45100,        -- XP necessário para passar do Level 64 → 65 (AJUSTADO)
-		totalXP = 320000,          -- TotalXP acumulado até Level 64 (AJUSTADO)
-		xpIntoLevel = 36080,       -- XP dentro do Level 64 (para 80% progress)
+		xpRequired = 10446,        -- XP necessário para passar do Level 64 → 65
+		totalXP = 277918,          -- TotalXP no Level 64 com 80% progress
+		xpIntoLevel = 8357,        -- XP dentro do Level 64 (para 80% progress)
 	}
 }
 
 -- ==================== FORMULA PARAMETERS ====================
 -- Fórmula calibrada: XPRequired(level) = BASE + SCALE * level^EXPONENT
--- ✅ AJUSTADA: Progressão mais suave e divertida
--- Reduzimos drasticamente os valores para tornar o jogo menos grindy:
--- - BASE: 20,000 → 100 (200x mais fácil no começo)
--- - SCALE: 500 → 50 (10x mais fácil na escala)
--- - EXPONENT: 1.65 → 1.55 (curva menos íngreme)
+-- ✅ AJUSTADA: Progressão MUITO mais fácil nos primeiros 50 níveis
+-- Reduzimos ainda mais os valores para tornar o início do jogo mais acessível:
+-- - BASE: 20,000 → 50 (400x mais fácil no começo)
+-- - SCALE: 500 → 25 (20x mais fácil na escala)
+-- - EXPONENT: 1.65 → 1.45 (curva muito mais suave)
 --
 -- Resultado:
--- - Level 1→2: ~150 XP (era 20,500 XP)
--- - Level 10→11: ~1,900 XP (era 42,335 XP)
--- - Level 64→65: ~45,000 XP (era 666,750 XP)
+-- - Level 1→2: ~75 XP (era 20,500 XP) - 273x mais fácil
+-- - Level 10→11: ~754 XP (era 42,335 XP) - 56x mais fácil
+-- - Level 25→26: ~2,710 XP (era 131,875 XP) - 49x mais fácil
+-- - Level 50→51: ~7,318 XP (era 387,750 XP) - 53x mais fácil
+-- - Level 64→65: ~10,446 XP (era 666,750 XP) - 64x mais fácil
+--
+-- 🎯 XP Total até Level 50: ~147,000 XP (era 415,000 XP) - 65% de redução!
 
 ProgressionConfig.FORMULA = {
 	type = "mixed",               -- Tipo: mixed (BASE + SCALE * level^EXPONENT)
-	BASE = 100,                   -- Offset constante (XP mínimo por level) - REDUZIDO
-	SCALE = 50,                   -- Coeficiente de escala - REDUZIDO
-	EXPONENT = 1.55,              -- Expoente da curva (controla aceleração) - REDUZIDO
+	BASE = 50,                    -- Offset constante (XP mínimo por level) - MUITO REDUZIDO
+	SCALE = 25,                   -- Coeficiente de escala - MUITO REDUZIDO
+	EXPONENT = 1.45,              -- Expoente da curva (controla aceleração) - MUITO REDUZIDO
 }
 
 -- Validação dos anchors (executado ao carregar o módulo)

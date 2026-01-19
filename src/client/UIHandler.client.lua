@@ -4,6 +4,9 @@ local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
 local UserInputService = game:GetService("UserInputService")
 
+-- ✅ Import ProgressionConfig for centralized rebirth tiers
+local ProgressionConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ProgressionConfig"))
+
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -168,19 +171,8 @@ print("[UIHandler] =======================================")
 local currentData = {Level = 1, XP = 0, XPRequired = 100, TotalXP = 0, Wins = 0, Rebirths = 0, Multiplier = 1}
 local giftClaimed = false
 
--- Rebirth tiers
-local rebirthTiers = {
-	{level = 25, multiplier = 1.5},
-	{level = 50, multiplier = 2.0},
-	{level = 100, multiplier = 2.5},
-	{level = 150, multiplier = 3.0},
-	{level = 200, multiplier = 3.5},
-	{level = 300, multiplier = 4.0},
-	{level = 500, multiplier = 5.0}, -- ✅ OK
-	{level = 750, multiplier = 6.0},
-	{level = 1000, multiplier = 7.5},
-	{level = 1500, multiplier = 10.0},
-}
+-- ✅ Import rebirth tiers from ProgressionConfig (single source of truth)
+local rebirthTiers = ProgressionConfig.REBIRTH_TIERS
 
 -- Win sound
 local winSound = Instance.new("Sound")
@@ -373,11 +365,28 @@ local function updateUI(data)
 	end
 
 	if levelText then
-		levelText.Text = "Level " .. data.Level
+		-- ✅ Mostra indicador de bloqueio se estiver no cap
+		if data.AtRebirthCap then
+			levelText.Text = "Level " .. data.Level .. " (CAPPED!)"
+			levelText.TextColor3 = Color3.fromRGB(255, 100, 100)  -- Vermelho
+		else
+			levelText.Text = "Level " .. data.Level
+			levelText.TextColor3 = Color3.fromRGB(255, 255, 255)  -- Branco
+		end
 	end
 
 	if xpText then
-		xpText.Text = formatNumber(data.XP) .. "/" .. formatNumber(data.XPRequired)
+		-- ✅ Mostra mensagem de rebirth se estiver bloqueado
+		if data.AtRebirthCap then
+			local nextTier = rebirthTiers[data.Rebirths + 1]
+			if nextTier then
+				xpText.Text = "REBIRTH TO CONTINUE!"
+				xpText.TextColor3 = Color3.fromRGB(255, 215, 0)  -- Dourado
+			end
+		else
+			xpText.Text = formatNumber(data.XP) .. "/" .. formatNumber(data.XPRequired)
+			xpText.TextColor3 = Color3.fromRGB(255, 255, 255)  -- Branco
+		end
 	end
 
 	local progress = data.XP / data.XPRequired
