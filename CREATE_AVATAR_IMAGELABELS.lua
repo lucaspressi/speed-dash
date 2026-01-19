@@ -58,7 +58,7 @@ local function createAvatarImageLabels(leaderboardName)
 
             -- Posição: à esquerda, espaçado verticalmente
             -- Ajuste esses valores conforme necessário para sua leaderboard
-            local avatarSize = 80
+            local avatarSize = 70
             local spacing = avatarSize + 10
             imageLabel.Position = UDim2.new(0, 25, 0, 10 + (i - 1) * spacing)
             imageLabel.Size = UDim2.new(0, avatarSize, 0, avatarSize)
