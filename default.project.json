@@ -199,19 +199,6 @@
         }
       },
 
-      "SpawnLocation": {
-        "$className": "SpawnLocation",
-        "$properties": {
-          "Anchored": true,
-          "Position": [0, 30, 600],
-          "Size": [6, 1, 6],
-          "Transparency": 0,
-          "CanCollide": true,
-          "Duration": 0,
-          "Neutral": true
-        }
-      },
-
       "NoobArena": {
         "$className": "Model",
         "ArenaBounds": {
