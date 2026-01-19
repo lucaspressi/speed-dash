@@ -199,20 +199,6 @@
         }
       },
 
-      "NoobArena": {
-        "$className": "Model",
-        "ArenaBounds": {
-          "$className": "Part",
-          "$properties": {
-            "Anchored": true,
-            "CanCollide": false,
-            "Color": [1, 0, 0],
-            "Position": [0, 7, 513],
-            "Size": [457, 109, 409],
-            "Transparency": 0.8
-          }
-        }
-      }
     },
 
     "Lighting": {
