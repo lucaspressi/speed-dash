@@ -634,6 +634,45 @@ local function setupMobileUI()
 			print("[UIHandler] ButtonsContainer found but no UIListLayout - using default scaling")
 		end
 	end
+
+	-- ✅ PATCH 3: Ajusta posição do WinsFrame/RebirthFrame em mobile para não ser tampado pelo chat
+	if isMobile then
+		-- Chat do Roblox fica no canto superior esquerdo em mobile
+		-- Move os frames mais para baixo para não conflitar
+
+		if winsFrame then
+			local originalPosition = winsFrame.Position
+
+			-- Move para baixo (Y aumentado) para evitar o chat
+			winsFrame.Position = UDim2.new(
+				originalPosition.X.Scale,
+				originalPosition.X.Offset,
+				0.12,  -- Move para Y = 12% da tela (abaixo do chat)
+				originalPosition.Y.Offset
+			)
+
+			print("[UIHandler] WinsFrame repositioned for mobile (moved down to avoid chat)")
+			print("[UIHandler]   Original Y: " .. tostring(originalPosition.Y.Scale))
+			print("[UIHandler]   New Y: 0.12")
+		end
+
+		if rebirthFrame then
+			local originalPosition = rebirthFrame.Position
+
+			-- Move para baixo (Y aumentado) para evitar o chat
+			-- Se está ao lado do WinsFrame, usa a mesma altura
+			rebirthFrame.Position = UDim2.new(
+				originalPosition.X.Scale,
+				originalPosition.X.Offset,
+				0.12,  -- Mesma altura do WinsFrame
+				originalPosition.Y.Offset
+			)
+
+			print("[UIHandler] RebirthFrame repositioned for mobile (moved down to avoid chat)")
+			print("[UIHandler]   Original Y: " .. tostring(originalPosition.Y.Scale))
+			print("[UIHandler]   New Y: 0.12")
+		end
+	end
 end
 
 -- Chama após tudo carregar
