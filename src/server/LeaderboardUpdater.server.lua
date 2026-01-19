@@ -164,6 +164,13 @@ local function updateLeaderboardDisplay(orderedDataStore, surfaceGui)
         return
     end
 
+    if not avatarsFolder then
+        warn("[LeaderboardUpdater] ⚠️ Avatars folder not found! Avatar thumbnails will not be displayed.")
+        warn("[LeaderboardUpdater] Create an 'Avatars' folder in the SurfaceGui with Avatar1-Avatar10 ImageLabels")
+    else
+        print("[LeaderboardUpdater] ✅ Avatars folder found, loading thumbnails...")
+    end
+
     for i = 1, 10 do
         local nameLabel = namesFolder:FindFirstChild("Name" .. i)
         local scoreLabel = scoreFolder:FindFirstChild("Score" .. i)
@@ -197,11 +204,14 @@ local function updateLeaderboardDisplay(orderedDataStore, surfaceGui)
                 end)
                 if thumbnailSuccess and thumbnailUrl then
                     avatarImage.Image = thumbnailUrl
+                    print("[LeaderboardUpdater] 🖼️ Loaded avatar for " .. username)
                 else
-                    warn("[LeaderboardUpdater] Failed to get thumbnail for " .. username)
+                    warn("[LeaderboardUpdater] ❌ Failed to get thumbnail for " .. username)
                     -- Reset to default Roblox icon if available
                     avatarImage.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
                 end
+            elseif avatarsFolder then
+                warn("[LeaderboardUpdater] ⚠️ Avatar" .. i .. " ImageLabel not found or is not an ImageLabel!")
             end
 
             print("[LeaderboardUpdater] Position " .. i .. ": " .. username .. " - " .. formatNumber(score))
