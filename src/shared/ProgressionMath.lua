@@ -15,9 +15,21 @@ function ProgressionMath.XPRequired(level)
 
 	if formula.type == "mixed" then
 		-- XPRequired(level) = BASE + SCALE * level^EXPONENT
+		-- ✅ CURVA ADAPTATIVA: Níveis iniciais são MUITO mais rápidos
 		local BASE = formula.BASE or 0
 		local SCALE = formula.SCALE or 1
 		local EXPONENT = formula.EXPONENT or 1.5
+
+		-- 🎯 Ajuste de curva para early game mais rápido
+		if level <= 10 then
+			-- Level 1-10: Progressão MUITO rápida (38% mais rápido)
+			EXPONENT = 1.15
+		elseif level <= 25 then
+			-- Level 11-25: Progressão rápida (35% mais rápido)
+			EXPONENT = 1.30
+		end
+		-- Level 26+: usa EXPONENT normal do config (1.45)
+
 		return math.floor(BASE + SCALE * (level ^ EXPONENT))
 
 	elseif formula.type == "power_law" then

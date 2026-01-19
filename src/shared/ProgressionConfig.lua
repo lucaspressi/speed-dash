@@ -27,19 +27,26 @@ ProgressionConfig.ANCHORS = {
 -- ==================== FORMULA PARAMETERS ====================
 -- Fórmula calibrada: XPRequired(level) = BASE + SCALE * level^EXPONENT
 -- ✅ AJUSTADA: Progressão MUITO mais fácil nos primeiros 50 níveis
+-- 🎯 CURVA ADAPTATIVA: Early game ainda mais rápido!
+--
 -- Reduzimos ainda mais os valores para tornar o início do jogo mais acessível:
 -- - BASE: 20,000 → 50 (400x mais fácil no começo)
 -- - SCALE: 500 → 25 (20x mais fácil na escala)
 -- - EXPONENT: 1.65 → 1.45 (curva muito mais suave)
 --
--- Resultado:
--- - Level 1→2: ~75 XP (era 20,500 XP) - 273x mais fácil
--- - Level 10→11: ~754 XP (era 42,335 XP) - 56x mais fácil
--- - Level 25→26: ~2,710 XP (era 131,875 XP) - 49x mais fácil
--- - Level 50→51: ~7,318 XP (era 387,750 XP) - 53x mais fácil
--- - Level 64→65: ~10,446 XP (era 666,750 XP) - 64x mais fácil
+-- 🚀 EARLY GAME BOOST (implementado em ProgressionMath.lua):
+-- - Level 1-10:  EXPONENT = 1.15 (progressão MUITO rápida, 38% mais rápido)
+-- - Level 11-25: EXPONENT = 1.30 (progressão rápida, 35% mais rápido)
+-- - Level 26+:   EXPONENT = 1.45 (progressão normal)
 --
--- 🎯 XP Total até Level 50: ~147,000 XP (era 415,000 XP) - 65% de redução!
+-- Resultado Final:
+-- - Level 1→2: ~75 XP (era 20,500 XP) - 273x mais fácil
+-- - Level 10→11: ~403 XP (era 42,335 XP) - 105x mais fácil
+-- - Level 25→26: ~1,691 XP (era 131,875 XP) - 78x mais fácil
+-- - Level 50→51: ~7,318 XP (era 387,750 XP) - 53x mais fácil
+--
+-- 🎯 XP Total até Level 10: ~2,320 XP (era 3,735 XP) - 38% mais rápido!
+-- 🎯 XP Total até Level 25: ~19,318 XP (era 29,739 XP) - 35% mais rápido!
 
 ProgressionConfig.FORMULA = {
 	type = "mixed",               -- Tipo: mixed (BASE + SCALE * level^EXPONENT)
