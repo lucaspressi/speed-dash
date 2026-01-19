@@ -406,8 +406,19 @@ local function openModal(modal)
 	modal.Visible = true
 	modal.Size = UDim2.new(0, 0, 0, 0)
 
-	if gamepassButton then gamepassButton.Visible = false end
-	if gamepassButton2 then gamepassButton2.Visible = false end
+	-- ✅ PATCH 1: Tenta esconder ButtonsContainer inteiro (melhor para UIListLayout)
+	-- Se não existir, usa fallback (esconde botões individuais)
+	local buttonsContainer = speedGameUI:FindFirstChild("ButtonsContainer")
+	if buttonsContainer then
+		-- Se existe ButtonsContainer, esconde ele inteiro (respeita UIListLayout)
+		buttonsContainer.Visible = false
+		print("[UIHandler] Modal opened - ButtonsContainer hidden")
+	else
+		-- Fallback: comportamento antigo (para compatibilidade)
+		if gamepassButton then gamepassButton.Visible = false end
+		if gamepassButton2 then gamepassButton2.Visible = false end
+		print("[UIHandler] Modal opened - Individual buttons hidden (fallback mode)")
+	end
 
 	TweenService:Create(modal, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 		Size = UDim2.new(0.9, 0, 0, 350)
@@ -427,8 +438,20 @@ local function closeModal(modal)
 
 	task.delay(0.2, function()
 		modal.Visible = false
-		if gamepassButton then gamepassButton.Visible = true end
-		if gamepassButton2 then gamepassButton2.Visible = true end
+
+		-- ✅ PATCH 1: Tenta mostrar ButtonsContainer inteiro (melhor para UIListLayout)
+		-- Se não existir, usa fallback (mostra botões individuais)
+		local buttonsContainer = speedGameUI:FindFirstChild("ButtonsContainer")
+		if buttonsContainer then
+			-- Se existe ButtonsContainer, mostra ele inteiro (respeita UIListLayout)
+			buttonsContainer.Visible = true
+			print("[UIHandler] Modal closed - ButtonsContainer shown")
+		else
+			-- Fallback: comportamento antigo (para compatibilidade)
+			if gamepassButton then gamepassButton.Visible = true end
+			if gamepassButton2 then gamepassButton2.Visible = true end
+			print("[UIHandler] Modal closed - Individual buttons shown (fallback mode)")
+		end
 	end)
 end
 
@@ -583,6 +606,33 @@ local function setupMobileUI()
 	else
 		uiScale.Scale = 1.0
 		print("[UIHandler] Desktop detected - UI scale 1.0x")
+	end
+
+	-- ✅ PATCH 2: Se ButtonsContainer existir, aplica UIScale separado para não quebrar layout
+	local buttonsContainer = speedGameUI:FindFirstChild("ButtonsContainer")
+	if buttonsContainer then
+		-- Verifica se ButtonsContainer tem UIListLayout (sistema de layout automático)
+		local hasListLayout = buttonsContainer:FindFirstChildOfClass("UIListLayout") ~= nil
+
+		if hasListLayout then
+			-- Se tem UIListLayout, cria UIScale próprio que neutraliza o scale do parent
+			local buttonScale = buttonsContainer:FindFirstChildOfClass("UIScale")
+			if not buttonScale then
+				buttonScale = Instance.new("UIScale")
+				buttonScale.Parent = buttonsContainer
+			end
+
+			-- Neutraliza o scale do parent (1.4x / 1.4x = 1.0x efetivo)
+			if isMobile then
+				buttonScale.Scale = 1.0 / 1.4  -- ≈ 0.714 (neutraliza o 1.4x do parent)
+				print("[UIHandler] ButtonsContainer scale adjusted for mobile (neutralized parent scale)")
+			else
+				buttonScale.Scale = 1.0
+				print("[UIHandler] ButtonsContainer scale normal for desktop")
+			end
+		else
+			print("[UIHandler] ButtonsContainer found but no UIListLayout - using default scaling")
+		end
 	end
 end
 
