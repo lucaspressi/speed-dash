@@ -135,10 +135,16 @@ print("[NoobAI]   Humanoid Sit: " .. tostring(humanoid.Sit))
 -- =========================
 -- ARENA CONFIGURATION
 -- =========================
-local arenaModel = workspace:WaitForChild("NoobArena", 5)
+local arenaModel = workspace:WaitForChild("NoobArena", 15)  -- Wait longer for manually-placed arena
 if not arenaModel then
-	warn("[NoobAI] ❌ 'NoobArena' Model not found! Script disabled.")
-	warn("[NoobAI] Make sure default.project.json defines NoobArena")
+	warn("[NoobAI] ❌ 'NoobArena' Model not found in Workspace!")
+	warn("[NoobAI] Script disabled. Make sure NoobArena is placed in Workspace.")
+	warn("[NoobAI] Current Workspace children:")
+	for _, child in pairs(workspace:GetChildren()) do
+		if child:IsA("Model") then
+			warn("  - " .. child.Name .. " (Model)")
+		end
+	end
 	return
 end
 
