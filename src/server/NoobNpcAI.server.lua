@@ -411,6 +411,15 @@ local function startMovingToPosition(targetPos)
 		return
 	end
 
+	-- Ensure walk animation is playing with correct speed
+	if walkTrack and not walkTrack.IsPlaying then
+		walkTrack:Play()
+	end
+	if walkTrack then
+		-- Adjust animation speed based on chase speed (default walk is 16 studs/sec)
+		walkTrack:AdjustSpeed(CHASE_SPEED / 16)
+	end
+
 	-- Nextbot-style movement: Move directly towards target using CFrame
 	movementConnection = RunService.Heartbeat:Connect(function(deltaTime)
 		if currentState ~= State.CHASING then
@@ -452,6 +461,12 @@ local function startMovingToPosition(targetPos)
 			hrp.CFrame = CFrame.new(newPos, newPos + lookDirection)
 		else
 			hrp.CFrame = CFrame.new(newPos)
+		end
+
+		-- Ensure walk animation keeps playing during movement
+		if walkTrack and not walkTrack.IsPlaying then
+			walkTrack:Play()
+			walkTrack:AdjustSpeed(CHASE_SPEED / 16)
 		end
 	end)
 end
@@ -703,6 +718,9 @@ enterState = function(newState)
 		humanoid.WalkSpeed = CHASE_SPEED
 		if walkTrack then
 			walkTrack:Play()
+			-- Adjust animation speed to match movement speed
+			walkTrack:AdjustSpeed(CHASE_SPEED / 16)
+			print("[NoobAI] 🎬 Walk animation speed: " .. (CHASE_SPEED / 16) .. "x")
 		end
 		startChaseLoop()
 
