@@ -203,7 +203,7 @@
         "$className": "SpawnLocation",
         "$properties": {
           "Anchored": true,
-          "Position": [0, 1, 500],
+          "Position": [0, 30, 600],
           "Size": [6, 1, 6],
           "Transparency": 0,
           "CanCollide": true,
@@ -220,8 +220,8 @@
             "Anchored": true,
             "CanCollide": false,
             "Color": [1, 0, 0],
-            "Position": [0, 7, 513],
-            "Size": [80, 40, 80],
+            "Position": [-3.5, 27.786, 607.5],
+            "Size": [457, 109, 409],
             "Transparency": 0.8
           }
         }
