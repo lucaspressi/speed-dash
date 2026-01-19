@@ -12,7 +12,7 @@ local workspace = game:GetService("Workspace")
 -- Tamanho dos avatares (ajuste aqui se quiser maior/menor)
 local AVATAR_SIZE = 50  -- Diminuído de 70 para 50
 local AVATAR_OFFSET_X = -60  -- Quanto à esquerda do nome (negativo = esquerda)
-local AVATAR_OFFSET_Y = 0  -- Ajuste vertical em relação ao nome
+local AVATAR_OFFSET_Y = -5  -- Ajuste vertical em relação ao nome (negativo = sobe)
 
 print("========================================")
 print("🎯 ALINHANDO AVATARES COM OS NOMES")
