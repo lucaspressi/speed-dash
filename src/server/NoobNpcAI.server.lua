@@ -541,9 +541,10 @@ local function startMovingToPosition(targetPos)
 		humanoid:Move(direction, false)
 
 		-- Apply velocity directly for smooth fast movement
+		-- CRITICAL FIX: Set Y velocity to 0 to prevent sinking through floor
 		hrp.AssemblyLinearVelocity = Vector3.new(
 			direction.X * CHASE_SPEED,
-			hrp.AssemblyLinearVelocity.Y, -- Preserve Y velocity (gravity)
+			0, -- ZERO Y velocity - no gravity, no sinking
 			direction.Z * CHASE_SPEED
 		)
 
