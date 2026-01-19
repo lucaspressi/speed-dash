@@ -7,32 +7,40 @@ local ProgressionConfig = {}
 -- ==================== DEBUG FLAG ====================
 ProgressionConfig.DEBUG = true
 
--- ==================== ANCHORS (Jogo Referência) ====================
--- 📌 ALVO CONFIRMADO: Level 64 no jogo referência
--- - Speed Display: 4,779,693
--- - XP Barra: 535,080 / 666,750 (≈ 80.22%)
--- - XPRequired(64): 666,750
--- - Aura: NÃO EXISTE no nosso jogo (ignorar multiplier de aura)
--- - Rebirth: Existe mas reseta TotalXP (não afeta speed display diretamente)
+-- ==================== ANCHORS (Progressão Ajustada) ====================
+-- 📌 AJUSTADO: Progressão mais suave e balanceada
+-- Nova fórmula resulta em:
+-- - Level 64: XPRequired ≈ 45,100
+-- - TotalXP para alcançar Level 64 ≈ 320,000
+-- Valores muito mais razoáveis para gameplay casual!
 
 ProgressionConfig.ANCHORS = {
 	{
 		level = 64,
-		xpRequired = 666750,      -- XP necessário para passar do Level 64 → 65
-		totalXP = 4779693,         -- TotalXP acumulado até Level 64 (com 535,080 XP na barra)
-		xpIntoLevel = 535080,      -- XP dentro do Level 64 (para 80.22% progress)
+		xpRequired = 45100,        -- XP necessário para passar do Level 64 → 65 (AJUSTADO)
+		totalXP = 320000,          -- TotalXP acumulado até Level 64 (AJUSTADO)
+		xpIntoLevel = 36080,       -- XP dentro do Level 64 (para 80% progress)
 	}
 }
 
 -- ==================== FORMULA PARAMETERS ====================
 -- Fórmula calibrada: XPRequired(level) = BASE + SCALE * level^EXPONENT
--- ✅ VALIDADA: Level 64 → XPRequired(64) = 666,750, TotalXP ≈ 4.24M
+-- ✅ AJUSTADA: Progressão mais suave e divertida
+-- Reduzimos drasticamente os valores para tornar o jogo menos grindy:
+-- - BASE: 20,000 → 100 (200x mais fácil no começo)
+-- - SCALE: 500 → 50 (10x mais fácil na escala)
+-- - EXPONENT: 1.65 → 1.55 (curva menos íngreme)
+--
+-- Resultado:
+-- - Level 1→2: ~150 XP (era 20,500 XP)
+-- - Level 10→11: ~1,900 XP (era 42,335 XP)
+-- - Level 64→65: ~45,000 XP (era 666,750 XP)
 
 ProgressionConfig.FORMULA = {
 	type = "mixed",               -- Tipo: mixed (BASE + SCALE * level^EXPONENT)
-	BASE = 20000,                 -- Offset constante (XP mínimo por level)
-	SCALE = 500,                  -- Coeficiente de escala
-	EXPONENT = 1.65,              -- Expoente da curva (controla aceleração)
+	BASE = 100,                   -- Offset constante (XP mínimo por level) - REDUZIDO
+	SCALE = 50,                   -- Coeficiente de escala - REDUZIDO
+	EXPONENT = 1.55,              -- Expoente da curva (controla aceleração) - REDUZIDO
 }
 
 -- Validação dos anchors (executado ao carregar o módulo)
