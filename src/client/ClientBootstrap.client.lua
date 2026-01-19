@@ -1159,9 +1159,19 @@ NpcLaserSlowEffect.OnClientEvent:Connect(function(duration)
 	slowLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	slowLabel.TextSize = 32
 	slowLabel.Font = Enum.Font.GothamBold
-	slowLabel.TextStrokeTransparency = 0.5
-	slowLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 	slowLabel.Parent = slowGui
+
+	-- 🔧 Apply stroke: use UIStroke if exists, otherwise fallback to TextStroke properties
+	local existingStroke = slowLabel:FindFirstChildOfClass("UIStroke")
+	if existingStroke then
+		-- Use existing UIStroke
+		existingStroke.Color = Color3.fromRGB(0, 0, 0)
+		existingStroke.Transparency = 0.5
+	else
+		-- Fallback to TextStroke properties if no UIStroke
+		slowLabel.TextStrokeTransparency = 0.5
+		slowLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	end
 
 	-- Adiciona canto arredondado
 	local corner = Instance.new("UICorner")

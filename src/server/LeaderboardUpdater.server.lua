@@ -70,6 +70,24 @@ end
 
 print("[LeaderboardUpdater] ✅ Leaderboard components initialized successfully!")
 
+-- Apply text stroke safely: use UIStroke if exists, otherwise fallback to TextStroke properties
+local function applyTextStroke(textLabel, color, transparency)
+	if not textLabel or not textLabel:IsA("TextLabel") then
+		return
+	end
+
+	local existingStroke = textLabel:FindFirstChildOfClass("UIStroke")
+	if existingStroke then
+		-- Use existing UIStroke
+		existingStroke.Color = color or Color3.fromRGB(0, 0, 0)
+		existingStroke.Transparency = transparency or 0
+	else
+		-- Fallback to TextStroke properties if no UIStroke
+		textLabel.TextStrokeColor3 = color or Color3.fromRGB(0, 0, 0)
+		textLabel.TextStrokeTransparency = transparency or 0
+	end
+end
+
 -- Format large numbers with abbreviations
 local function formatNumber(num)
 	if num < 1000 then
