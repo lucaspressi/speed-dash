@@ -220,7 +220,7 @@
             "Anchored": true,
             "CanCollide": false,
             "Color": [1, 0, 0],
-            "Position": [-3.5, 27.786, 607.5],
+            "Position": [0, 7, 513],
             "Size": [457, 109, 409],
             "Transparency": 0.8
           }

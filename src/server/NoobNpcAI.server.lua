@@ -388,13 +388,24 @@ local function createPathTo(targetPosition)
 end
 
 -- =========================
--- MOVEMENT SYSTEM (NEXTBOT STYLE - Direct CFrame Movement)
+-- MOVEMENT SYSTEM (Using Humanoid:Move() for proper animations)
 -- =========================
 local movementConnection = nil
 local currentMoveTarget = nil
--- Use arena center Y as ground level (where players walk)
 local GROUND_Y = arenaCenter.Y
 print("[NoobAI] 📍 Ground Y level set to: " .. GROUND_Y)
+
+-- Connect to Humanoid.Running event to adjust animation speed dynamically
+humanoid.Running:Connect(function(speed)
+	if walkTrack and walkTrack.IsPlaying then
+		-- Normalize animation speed based on current velocity
+		-- WalkSpeed 16 = 1x animation, higher speeds = faster animation
+		local animSpeed = speed / 16
+		if animSpeed > 0.1 then -- Only adjust if actually moving
+			walkTrack:AdjustSpeed(animSpeed)
+		end
+	end
+end)
 
 local function startMovingToPosition(targetPos)
 	-- Stop old movement
@@ -411,16 +422,7 @@ local function startMovingToPosition(targetPos)
 		return
 	end
 
-	-- Ensure walk animation is playing with correct speed
-	if walkTrack and not walkTrack.IsPlaying then
-		walkTrack:Play()
-	end
-	if walkTrack then
-		-- Adjust animation speed based on chase speed (default walk is 16 studs/sec)
-		walkTrack:AdjustSpeed(CHASE_SPEED / 16)
-	end
-
-	-- Nextbot-style movement: Move directly towards target using CFrame
+	-- Movement using Humanoid:Move() + AssemblyLinearVelocity for smooth chase
 	movementConnection = RunService.Heartbeat:Connect(function(deltaTime)
 		if currentState ~= State.CHASING then
 			if movementConnection then
@@ -433,7 +435,7 @@ local function startMovingToPosition(targetPos)
 		-- Get current position
 		local currentPos = hrp.Position
 
-		-- Calculate direction to target (including Y for vertical movement)
+		-- Calculate direction to target
 		local direction = (currentMoveTarget - currentPos).Unit
 		local distance = (currentMoveTarget - currentPos).Magnitude
 
@@ -442,31 +444,29 @@ local function startMovingToPosition(targetPos)
 			return -- Chase loop will handle next waypoint
 		end
 
-		-- Calculate movement speed (studs per second)
-		local speed = CHASE_SPEED
-		local moveAmount = direction * speed * deltaTime
-
-		-- Calculate new position
-		local newPos = currentPos + moveAmount
-
 		-- Keep within arena bounds
-		if not isPositionInArena(newPos) then
+		local testPos = currentPos + direction * CHASE_SPEED * deltaTime
+		if not isPositionInArena(testPos) then
 			-- Stop at arena edge
 			return
 		end
 
-		-- Move NPC using CFrame - look at target horizontally
+		-- Use Humanoid:Move() to trigger walk animations automatically
+		-- This method tells the humanoid to walk in a direction
+		humanoid:Move(direction, false)
+
+		-- Apply velocity directly for smooth fast movement
+		hrp.AssemblyLinearVelocity = Vector3.new(
+			direction.X * CHASE_SPEED,
+			hrp.AssemblyLinearVelocity.Y, -- Preserve Y velocity (gravity)
+			direction.Z * CHASE_SPEED
+		)
+
+		-- Look at target (rotation only, no position change)
 		local lookDirection = Vector3.new(direction.X, 0, direction.Z).Unit
 		if lookDirection.Magnitude > 0 then
-			hrp.CFrame = CFrame.new(newPos, newPos + lookDirection)
-		else
-			hrp.CFrame = CFrame.new(newPos)
-		end
-
-		-- Ensure walk animation keeps playing during movement
-		if walkTrack and not walkTrack.IsPlaying then
-			walkTrack:Play()
-			walkTrack:AdjustSpeed(CHASE_SPEED / 16)
+			local targetCF = CFrame.lookAt(hrp.Position, hrp.Position + lookDirection)
+			hrp.CFrame = CFrame.new(hrp.Position) * (targetCF - targetCF.Position)
 		end
 	end)
 end
