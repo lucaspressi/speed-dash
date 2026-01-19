@@ -156,12 +156,23 @@ warn("[NoobAI] ⚠️ Arena found: Position=" .. tostring(arenaCenter) .. ", Siz
 warn("[NoobAI] ✅ Arena validation skipped - using existing arena configuration")
 
 -- =========================
--- CONFIG
+-- CONFIG (Can be overridden by NPC Attributes)
 -- =========================
--- Movement
-local CHASE_SPEED = 120 -- NEXTBOT STYLE - Fast but not too fast
-local IDLE_SPEED = 16
-local DETECTION_RANGE = 200
+-- Movement - Default values (can be customized per NPC using Attributes)
+local DEFAULT_CHASE_SPEED = 120 -- NEXTBOT STYLE - Fast but not too fast
+local DEFAULT_IDLE_SPEED = 16
+local DEFAULT_DETECTION_RANGE = 200
+
+-- Read custom speeds from NPC Attributes (if set in Studio)
+local CHASE_SPEED = noob:GetAttribute("ChaseSpeed") or DEFAULT_CHASE_SPEED
+local IDLE_SPEED = noob:GetAttribute("IdleSpeed") or DEFAULT_IDLE_SPEED
+local DETECTION_RANGE = noob:GetAttribute("DetectionRange") or DEFAULT_DETECTION_RANGE
+
+print("[NoobAI] ⚙️ Configuration:")
+print("[NoobAI]   Chase Speed: " .. CHASE_SPEED .. (noob:GetAttribute("ChaseSpeed") and " (custom)" or " (default)"))
+print("[NoobAI]   Idle Speed: " .. IDLE_SPEED .. (noob:GetAttribute("IdleSpeed") and " (custom)" or " (default)"))
+print("[NoobAI]   Detection Range: " .. DETECTION_RANGE .. (noob:GetAttribute("DetectionRange") and " (custom)" or " (default)"))
+
 local PATHFINDING_UPDATE = 1.0 -- Recalculate path every 1 second
 local MOVEMENT_UPDATE = 0.1 -- Move every 0.1 seconds
 
