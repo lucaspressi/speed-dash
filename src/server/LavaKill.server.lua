@@ -149,9 +149,9 @@ local function startPositionBasedKiller()
     debugLog("✅ Position-based killer active (checks every 0.1s)")
 end
 
--- ==================== METHOD 3: REGION3 DETECTION ====================
-local function startRegion3Killer()
-    debugLog("🎯 Starting Region3 killer (ultra-sensitive)...")
+-- ==================== METHOD 3: SPATIAL QUERY DETECTION ====================
+local function startSpatialQueryKiller()
+    debugLog("🎯 Starting Spatial Query killer (ultra-sensitive)...")
 
     task.spawn(function()
         while true do
@@ -159,28 +159,25 @@ local function startRegion3Killer()
 
             for _, lavaPart in ipairs(killPartsList) do
                 if lavaPart and lavaPart.Parent then
-                    local pos = lavaPart.Position
-                    local size = lavaPart.Size
+                    -- Use GetPartBoundsInBox instead of Region3 (supports rotation)
+                    local overlapParams = OverlapParams.new()
+                    overlapParams.FilterType = Enum.RaycastFilterType.Include
+                    overlapParams.FilterDescendantsInstances = {workspace}
+                    overlapParams.MaxParts = 100
 
-                    -- Create Region3 around lava part
-                    local region = Region3.new(
-                        pos - (size/2) - Vector3.new(1, 1, 1),
-                        pos + (size/2) + Vector3.new(1, 1, 1)
-                    )
-                    region.CFrame = lavaPart.CFrame
+                    -- Expand bounds slightly for better detection
+                    local expandedSize = lavaPart.Size + Vector3.new(2, 2, 2)
+                    local partsInBox = workspace:GetPartBoundsInBox(lavaPart.CFrame, expandedSize, overlapParams)
 
-                    -- Get all parts in region
-                    local partsInRegion = workspace:FindPartsInRegion3(region, nil, 100)
-
-                    for _, part in ipairs(partsInRegion) do
+                    for _, part in ipairs(partsInBox) do
                         if part.Parent and part.Parent:FindFirstChild("Humanoid") then
                             local player = Players:GetPlayerFromCharacter(part.Parent)
                             if player then
-                                local cooldownKey = player.UserId .. "_region_" .. lavaPart:GetFullName()
+                                local cooldownKey = player.UserId .. "_spatial_" .. lavaPart:GetFullName()
                                 local lastKill = killCooldowns[cooldownKey] or 0
 
                                 if os.clock() - lastKill > 1 then
-                                    killPlayer(player, "Region3 Detection", lavaPart)
+                                    killPlayer(player, "Spatial Query Detection", lavaPart)
                                     killCooldowns[cooldownKey] = os.clock()
                                 end
                             end
@@ -191,7 +188,7 @@ local function startRegion3Killer()
         end
     end)
 
-    debugLog("✅ Region3 killer active (checks every 0.2s)")
+    debugLog("✅ Spatial Query killer active (checks every 0.2s)")
 end
 
 -- ==================== SCAN AND ACTIVATE ====================
@@ -266,12 +263,12 @@ else
 
     -- ACTIVATE ALL 3 DETECTION METHODS
     startPositionBasedKiller()  -- Method 2
-    startRegion3Killer()        -- Method 3
+    startSpatialQueryKiller()   -- Method 3
 
     debugLog("🛡️ TRIPLE PROTECTION ACTIVE:")
     debugLog("   1️⃣ Touched Events")
     debugLog("   2️⃣ Position Detection (every 0.1s)")
-    debugLog("   3️⃣ Region3 Detection (every 0.2s)")
+    debugLog("   3️⃣ Spatial Query Detection (every 0.2s)")
     debugLog("")
     debugLog("💀 Players stepping into lava WILL DIE - guaranteed!")
 end
