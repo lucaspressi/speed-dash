@@ -159,7 +159,7 @@ warn("[NoobAI] ✅ Arena validation skipped - using existing arena configuration
 -- CONFIG
 -- =========================
 -- Movement
-local CHASE_SPEED = 250 -- NEXTBOT STYLE - Very fast direct chase
+local CHASE_SPEED = 120 -- NEXTBOT STYLE - Fast but not too fast
 local IDLE_SPEED = 16
 local DETECTION_RANGE = 200
 local PATHFINDING_UPDATE = 1.0 -- Recalculate path every 1 second
@@ -381,7 +381,9 @@ end
 -- =========================
 local movementConnection = nil
 local currentMoveTarget = nil
-local GROUND_Y = 7 -- Keep NPC at ground level
+-- Use arena center Y as ground level (where players walk)
+local GROUND_Y = arenaCenter.Y
+print("[NoobAI] 📍 Ground Y level set to: " .. GROUND_Y)
 
 local function startMovingToPosition(targetPos)
 	-- Stop old movement
@@ -390,11 +392,7 @@ local function startMovingToPosition(targetPos)
 		movementConnection = nil
 	end
 
-	-- Keep target at ground level
-	targetPos = Vector3.new(targetPos.X, GROUND_Y, targetPos.Z)
 	currentMoveTarget = targetPos
-
-	print("[NoobAI] 🎯 Moving to: " .. tostring(targetPos))
 
 	-- Validate target position is in arena
 	if not isPositionInArena(targetPos) then
@@ -412,10 +410,10 @@ local function startMovingToPosition(targetPos)
 			return
 		end
 
-		-- Get current position (but force ground level)
-		local currentPos = Vector3.new(hrp.Position.X, GROUND_Y, hrp.Position.Z)
+		-- Get current position
+		local currentPos = hrp.Position
 
-		-- Calculate direction to target
+		-- Calculate direction to target (including Y for vertical movement)
 		local direction = (currentMoveTarget - currentPos).Unit
 		local distance = (currentMoveTarget - currentPos).Magnitude
 
@@ -437,7 +435,7 @@ local function startMovingToPosition(targetPos)
 			return
 		end
 
-		-- Move NPC using CFrame (maintains Y level, ignores physics)
+		-- Move NPC using CFrame - look at target horizontally
 		local lookDirection = Vector3.new(direction.X, 0, direction.Z).Unit
 		if lookDirection.Magnitude > 0 then
 			hrp.CFrame = CFrame.new(newPos, newPos + lookDirection)
