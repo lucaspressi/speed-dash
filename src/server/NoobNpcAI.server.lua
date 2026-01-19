@@ -219,7 +219,7 @@ local waypointIndex = 0
 local pathfindingCoroutine = nil
 
 -- =========================
--- ANIMATIONS
+-- ANIMATIONS - Using Roblox Animate Script
 -- =========================
 local animator = humanoid:FindFirstChildOfClass("Animator")
 if not animator then
@@ -227,23 +227,74 @@ if not animator then
 	animator.Parent = humanoid
 end
 
--- Walk animation
-local walkAnim = Instance.new("Animation")
-walkAnim.AnimationId = "rbxassetid://180426354"
-local walkTrack = nil
-local okWalk, errWalk = pcall(function()
-	walkTrack = animator:LoadAnimation(walkAnim)
-	walkTrack.Looped = true
-	walkTrack.Priority = Enum.AnimationPriority.Movement
-end)
+-- CRITICAL: Add Animate script for automatic walk/run animations
+-- This script is what makes NPCs animate automatically when moving
+local animateScript = noob:FindFirstChild("Animate")
+if not animateScript then
+	print("[NoobAI] 📦 Creating Animate script for automatic animations...")
 
-if okWalk and walkTrack then
-	print("[NoobAI] ✅ Walk animation loaded successfully")
+	-- Wait for a player to get their Animate script as template
+	local templateAnimate = nil
+	local maxWait = 5
+	local waited = 0
+
+	while not templateAnimate and waited < maxWait do
+		for _, player in pairs(Players:GetPlayers()) do
+			if player.Character then
+				local charAnimate = player.Character:FindFirstChild("Animate")
+				if charAnimate then
+					templateAnimate = charAnimate
+					break
+				end
+			end
+		end
+		if not templateAnimate then
+			task.wait(0.5)
+			waited = waited + 0.5
+		end
+	end
+
+	if templateAnimate then
+		-- Clone the Animate script from player
+		animateScript = templateAnimate:Clone()
+		animateScript.Parent = noob
+		print("[NoobAI] ✅ Animate script added from player template")
+	else
+		warn("[NoobAI] ⚠️ Could not find player Animate script - creating basic animation setup")
+
+		-- Fallback: Create basic animation configuration
+		local animate = Instance.new("LocalScript")
+		animate.Name = "Animate"
+		animate.Disabled = true -- Will be enabled after setup
+
+		-- Add basic walk animation
+		local walk = Instance.new("StringValue")
+		walk.Name = "walk"
+		walk.Parent = animate
+
+		local walkAnim = Instance.new("Animation")
+		walkAnim.Name = "WalkAnim"
+		walkAnim.AnimationId = "rbxassetid://180426354" -- R15 walk
+		walkAnim.Parent = walk
+
+		-- Add basic run animation
+		local run = Instance.new("StringValue")
+		run.Name = "run"
+		run.Parent = animate
+
+		local runAnim = Instance.new("Animation")
+		runAnim.Name = "RunAnim"
+		runAnim.AnimationId = "rbxassetid://180426354" -- R15 run (same as walk)
+		runAnim.Parent = run
+
+		animate.Parent = noob
+		print("[NoobAI] ⚠️ Basic animation setup created (walk/run may not be perfect)")
+	end
 else
-	warn("[NoobAI] ❌ Failed to load walk animation: " .. tostring(errWalk))
+	print("[NoobAI] ✅ Animate script already exists")
 end
 
--- Meditation animation
+-- Meditation animation (custom for IDLE state)
 local meditateAnim = Instance.new("Animation")
 meditateAnim.AnimationId = "rbxassetid://2510196951"
 local meditateTrack = nil
@@ -395,17 +446,8 @@ local currentMoveTarget = nil
 local GROUND_Y = arenaCenter.Y
 print("[NoobAI] 📍 Ground Y level set to: " .. GROUND_Y)
 
--- Connect to Humanoid.Running event to adjust animation speed dynamically
-humanoid.Running:Connect(function(speed)
-	if walkTrack and walkTrack.IsPlaying then
-		-- Normalize animation speed based on current velocity
-		-- WalkSpeed 16 = 1x animation, higher speeds = faster animation
-		local animSpeed = speed / 16
-		if animSpeed > 0.1 then -- Only adjust if actually moving
-			walkTrack:AdjustSpeed(animSpeed)
-		end
-	end
-end)
+-- Note: Animate script now handles walk/run animations automatically
+-- based on Humanoid.WalkSpeed and movement
 
 local function startMovingToPosition(targetPos)
 	-- Stop old movement
@@ -676,9 +718,6 @@ enterState = function(newState)
 		end
 
 	elseif currentState == State.CHASING then
-		if walkTrack and walkTrack.IsPlaying then
-			walkTrack:Stop()
-		end
 		stopMovement()
 		currentTarget = nil
 		pathfindingCoroutine = nil
@@ -717,19 +756,11 @@ enterState = function(newState)
 			meditateTrack:Stop()
 		end
 		humanoid.WalkSpeed = CHASE_SPEED
-		if walkTrack then
-			walkTrack:Play()
-			-- Adjust animation speed to match movement speed
-			walkTrack:AdjustSpeed(CHASE_SPEED / 16)
-			print("[NoobAI] 🎬 Walk animation speed: " .. (CHASE_SPEED / 16) .. "x")
-		end
+		-- Animate script will automatically play walk/run animations based on WalkSpeed
 		startChaseLoop()
 
 	elseif newState == State.TAUNTING then
 		print("[NoobAI] 💃 Entering TAUNTING - victory dance")
-		if walkTrack and walkTrack.IsPlaying then
-			walkTrack:Stop()
-		end
 		doVictoryTaunt()
 
 		-- Auto-return to IDLE after taunt
