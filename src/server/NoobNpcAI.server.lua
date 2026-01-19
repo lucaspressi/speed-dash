@@ -70,9 +70,9 @@ if humanoid.Health <= 0 then
 end
 
 -- 5. Set proper WalkSpeed (higher for scaled NPCs)
-humanoid.WalkSpeed = 50
+humanoid.WalkSpeed = 100
 humanoid.JumpPower = 0 -- No jumping for NPC
-print("[NoobAI] ✅ WalkSpeed = 50, JumpPower = 0")
+print("[NoobAI] ✅ WalkSpeed = 100, JumpPower = 0")
 
 -- 6. Remove any BodyMovers and constraints that might interfere
 for _, child in pairs(hrp:GetChildren()) do
@@ -159,7 +159,7 @@ warn("[NoobAI] ✅ Arena validation skipped - using existing arena configuration
 -- CONFIG
 -- =========================
 -- Movement
-local CHASE_SPEED = 80 -- Increased for scaled NPCs
+local CHASE_SPEED = 150 -- Increased for scaled NPCs
 local IDLE_SPEED = 16
 local DETECTION_RANGE = 200
 local PATHFINDING_UPDATE = 1.0 -- Recalculate path every 1 second
