@@ -580,6 +580,29 @@ local function setupMobileUI()
 	if isMobile then
 		uiScale.Scale = 1.4
 		print("[UIHandler] Mobile detected - UI scaled to 1.4x")
+
+		-- ✅ AJUSTE MOBILE: Reposiciona WinsFrame/RebirthFrame para não serem cobertos pelo chat
+		if winsFrame then
+			local originalPosition = winsFrame.Position
+			winsFrame.Position = UDim2.new(
+				originalPosition.X.Scale,
+				originalPosition.X.Offset,
+				0.12,  -- Move para Y = 12% da tela (abaixo do chat mobile)
+				originalPosition.Y.Offset
+			)
+			print("[UIHandler] 📱 WinsFrame reposicionado para mobile (Y=0.12)")
+		end
+
+		if rebirthFrame then
+			local originalPosition = rebirthFrame.Position
+			rebirthFrame.Position = UDim2.new(
+				originalPosition.X.Scale,
+				originalPosition.X.Offset,
+				0.12,  -- Mesma altura do WinsFrame
+				originalPosition.Y.Offset
+			)
+			print("[UIHandler] 📱 RebirthFrame reposicionado para mobile (Y=0.12)")
+		end
 	else
 		uiScale.Scale = 1.0
 		print("[UIHandler] Desktop detected - UI scale 1.0x")
