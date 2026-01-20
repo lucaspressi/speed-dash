@@ -46,17 +46,34 @@ if not button then
 end
 
 -- Elementos do botão (alguns podem não existir, verificar antes de usar)
--- ⚠️ IMPORTANTE: GamepassText primeiro! ValueText pode estar dentro de PriceTag
-local ValueText = button:FindFirstChild("GamepassText") or button:FindFirstChild("ValueText")
-local OnlyLabel = button:FindFirstChild("OnlyLabel")
+-- ⚠️ IMPORTANTE: Buscar GamepassText E ValueText separadamente!
+-- GamepassText = multiplicador ("2X SPEED")
+-- ValueText = preço em Robux ("3", "29", "81", "599")
+local priceTag = button:FindFirstChild("PriceTag", true)
+local gamepassText = priceTag and priceTag:FindFirstChild("GamepassText")
+local valueText = priceTag and priceTag:FindFirstChild("ValueText")
+local onlyLabel = priceTag and priceTag:FindFirstChild("OnlyLabel")
 
-if not ValueText then
-	warn("[GamepassUpdater] ⚠️ ValueText/GamepassText não encontrado no botão!")
+-- Fallback: buscar no botão diretamente se não achar no PriceTag
+if not gamepassText then
+	gamepassText = button:FindFirstChild("GamepassText", true)
+end
+if not valueText then
+	valueText = button:FindFirstChild("ValueText", true)
+end
+if not onlyLabel then
+	onlyLabel = button:FindFirstChild("OnlyLabel", true)
+end
+
+-- Validar elementos críticos
+if not gamepassText and not valueText then
+	warn("[GamepassUpdater] ⚠️ Nenhum elemento de texto encontrado (GamepassText ou ValueText)!")
 	return
 end
 
-print("[GamepassUpdater] 🎯 ValueText encontrado:", ValueText:GetFullName())
-print("[GamepassUpdater] 🎯 OnlyLabel encontrado:", OnlyLabel and OnlyLabel:GetFullName() or "NENHUM")
+print("[GamepassUpdater] 🎯 GamepassText encontrado:", gamepassText and gamepassText:GetFullName() or "NÃO ENCONTRADO")
+print("[GamepassUpdater] 🎯 ValueText encontrado:", valueText and valueText:GetFullName() or "NÃO ENCONTRADO")
+print("[GamepassUpdater] 🎯 OnlyLabel encontrado:", onlyLabel and onlyLabel:GetFullName() or "NENHUM")
 
 -- ==================== LIMPAR ELEMENTOS HARDCODED ====================
 
@@ -92,9 +109,9 @@ if priceTag then
 end
 
 -- Limpar texto do OnlyLabel se tiver hardcoded
-if OnlyLabel and OnlyLabel:IsA("TextLabel") then
-	if OnlyLabel.Text == "ONLY 3" or OnlyLabel.Text:find("3") or OnlyLabel.Text:find("ROBUX") then
-		OnlyLabel.Text = "ONLY"
+if onlyLabel and onlyLabel:IsA("TextLabel") then
+	if onlyLabel.Text == "ONLY 3" or onlyLabel.Text:find("3") or onlyLabel.Text:find("ROBUX") then
+		onlyLabel.Text = "ONLY"
 		print("[GamepassUpdater] 🧹 OnlyLabel texto limpo")
 	end
 end
@@ -119,19 +136,28 @@ local function updateButton(level)
 		-- Jogador pode comprar o próximo boost
 		button.Visible = true
 
-		-- Atualizar ValueText dinamicamente com o multiplicador que pode comprar
-		ValueText.Text = data.nextMult .. "x SPEED"
+		-- ✅ Atualizar GamepassText com o MULTIPLICADOR
+		if gamepassText then
+			gamepassText.Text = data.nextMult .. "X SPEED"
+			print("[GamepassUpdater] ✅ GamepassText atualizado:", gamepassText.Text)
+		end
+
+		-- ✅ Atualizar ValueText com o PREÇO
+		if valueText then
+			valueText.Text = tostring(data.price)
+			print("[GamepassUpdater] ✅ ValueText atualizado:", valueText.Text, "R$")
+		end
 
 		-- OnlyLabel deve mostrar apenas para os primeiros boosts (não para 16x)
-		if OnlyLabel then
-			OnlyLabel.Text = "ONLY"  -- Garantir que está sem números hardcoded
-			OnlyLabel.Visible = (data.nextMult < 16)
+		if onlyLabel then
+			onlyLabel.Text = "ONLY"  -- Garantir que está sem números hardcoded
+			onlyLabel.Visible = (data.nextMult < 16)
 		end
 
 		-- NÃO forçar PriceTag invisível aqui
 		-- A validação inicial já determinou se deve ou não estar visível
 
-		print("[GamepassUpdater] ✅ Botão mostra:", ValueText.Text)
+		print("[GamepassUpdater] ✅ Botão configurado para nível:", level, "→ Próximo:", data.nextMult .. "X por", data.price, "R$")
 	end
 end
 
