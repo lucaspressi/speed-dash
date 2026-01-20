@@ -102,93 +102,19 @@ local function setupKillTouch(part)
 end
 
 -- ==================== METHOD 2: POSITION-BASED DETECTION ====================
+-- ⚠️ DISABLED: Causava freezes (10 checks/s × players × lava parts = lag)
+-- TouchEnded é suficiente para detecção precisa
 local function startPositionBasedKiller()
-    debugLog("🚨 Starting position-based killer (fallback system)...")
-
-    task.spawn(function()
-        while true do
-            task.wait(0.1)  -- Check 10x per second
-
-            for _, player in ipairs(Players:GetPlayers()) do
-                local character = player.Character
-                if character then
-                    local hrp = character:FindFirstChild("HumanoidRootPart")
-                    local humanoid = character:FindFirstChild("Humanoid")
-
-                    if hrp and humanoid and humanoid.Health > 0 then
-                        local playerPos = hrp.Position
-
-                        -- Check each lava part
-                        for _, lavaPart in ipairs(killPartsList) do
-                            if lavaPart and lavaPart.Parent then
-                                local lavaPos = lavaPart.Position
-                                local lavaSize = lavaPart.Size
-
-                                -- Bounding box collision detection
-                                local dx = math.abs(playerPos.X - lavaPos.X)
-                                local dy = math.abs(playerPos.Y - lavaPos.Y)
-                                local dz = math.abs(playerPos.Z - lavaPos.Z)
-
-                                if dx < lavaSize.X/2 and dy < lavaSize.Y/2 and dz < lavaSize.Z/2 then
-                                    local cooldownKey = player.UserId .. "_position_" .. lavaPart:GetFullName()
-                                    local lastKill = killCooldowns[cooldownKey] or 0
-
-                                    if os.clock() - lastKill > 1 then
-                                        killPlayer(player, "Position Detection", lavaPart)
-                                        killCooldowns[cooldownKey] = os.clock()
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-
-    debugLog("✅ Position-based killer active (checks every 0.1s)")
+    debugLog("⏸️ Position-based killer DESABILITADO (performance)")
+    -- Não iniciar loop - usar apenas TouchEnded
 end
 
 -- ==================== METHOD 3: SPATIAL QUERY DETECTION ====================
+-- ⚠️ DISABLED: GetPartBoundsInBox é MUITO caro (5 checks/s × lava parts)
+-- TouchEnded é suficiente para detecção precisa
 local function startSpatialQueryKiller()
-    debugLog("🎯 Starting Spatial Query killer (ultra-sensitive)...")
-
-    task.spawn(function()
-        while true do
-            task.wait(0.2)  -- Check 5x per second
-
-            for _, lavaPart in ipairs(killPartsList) do
-                if lavaPart and lavaPart.Parent then
-                    -- Use GetPartBoundsInBox instead of Region3 (supports rotation)
-                    local overlapParams = OverlapParams.new()
-                    overlapParams.FilterType = Enum.RaycastFilterType.Include
-                    overlapParams.FilterDescendantsInstances = {workspace}
-                    overlapParams.MaxParts = 100
-
-                    -- Expand bounds slightly for better detection
-                    local expandedSize = lavaPart.Size + Vector3.new(2, 2, 2)
-                    local partsInBox = workspace:GetPartBoundsInBox(lavaPart.CFrame, expandedSize, overlapParams)
-
-                    for _, part in ipairs(partsInBox) do
-                        if part.Parent and part.Parent:FindFirstChild("Humanoid") then
-                            local player = Players:GetPlayerFromCharacter(part.Parent)
-                            if player then
-                                local cooldownKey = player.UserId .. "_spatial_" .. lavaPart:GetFullName()
-                                local lastKill = killCooldowns[cooldownKey] or 0
-
-                                if os.clock() - lastKill > 1 then
-                                    killPlayer(player, "Spatial Query Detection", lavaPart)
-                                    killCooldowns[cooldownKey] = os.clock()
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-
-    debugLog("✅ Spatial Query killer active (checks every 0.2s)")
+    debugLog("⏸️ Spatial Query killer DESABILITADO (performance)")
+    -- Não iniciar loop - usar apenas TouchEnded
 end
 
 -- ==================== SCAN AND ACTIVATE ====================
