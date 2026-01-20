@@ -108,18 +108,18 @@ local speedBoostButtonNames = {"GamepassButton", "SpeedBoostButton", "SpeedBoost
 local winsBoostButtonNames = {"GamepassButton2", "WinsBoostButton", "WinsBoost", "BoostWins"}
 
 print("[UIHandler] 🔍 Searching for buttons in SpeedGameUI...")
-print("[UIHandler] 📋 All descendants:")
-for _, child in pairs(speedGameUI:GetDescendants()) do
-	if child:IsA("TextButton") or child:IsA("ImageButton") then
-		-- ✅ Added tostring() protection to prevent table concatenation errors
-		print("[UIHandler]   → " .. tostring(child.Name) .. " (" .. tostring(child.ClassName) .. ") at " .. tostring(child:GetFullName()))
-	end
-end
 
 -- Find BoostFrame first
 local boostFrame = speedGameUI:FindFirstChild("BoostFrame")
 
+-- ⚡ OPTIMIZED: Combina dois loops GetDescendants() em um único
 for _, child in pairs(speedGameUI:GetDescendants()) do
+	-- Log todos os botões (diagnóstico)
+	if child:IsA("TextButton") or child:IsA("ImageButton") then
+		print("[UIHandler]   → " .. tostring(child.Name) .. " (" .. tostring(child.ClassName) .. ") at " .. tostring(child:GetFullName()))
+	end
+
+	-- Encontrar botões específicos (no mesmo loop)
 	if child.Name == "RebirthButton" and child:IsA("TextButton") then
 		rebirthButton = child
 		print("[UIHandler] ✅ Found RebirthButton")
@@ -536,12 +536,9 @@ if verifyButton then
 end
 
 if winsFrame then
+	-- ⚡ OPTIMIZED: Active = false herda para descendentes automaticamente
+	-- Não precisa iterar GetDescendants() - economiza performance
 	winsFrame.Active = false
-	for _, child in pairs(winsFrame:GetDescendants()) do
-		if child:IsA("GuiObject") then
-			child.Active = false
-		end
-	end
 end
 
 if gamepassButton then

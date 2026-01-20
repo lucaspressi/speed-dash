@@ -89,11 +89,12 @@ local function updateButton(level)
 		button.Visible = true
 
 		-- Atualizar ValueText dinamicamente com o multiplicador que pode comprar
-		ValueText.Text = data.nextMult .. "x"
+		ValueText.Text = data.nextMult .. "x SPEED"
 
-		-- Esconder OnlyLabel se for o último boost (16x)
+		-- OnlyLabel deve mostrar apenas para os primeiros boosts (não para 16x)
 		if OnlyLabel then
-			OnlyLabel.Visible = (data.nextMult ~= 16)
+			-- Mostrar "ONLY" apenas se NÃO for o boost final
+			OnlyLabel.Visible = (data.nextMult < 16)
 		end
 
 		print("[GamepassUpdater] ✅ Botão mostra:", ValueText.Text)
