@@ -2,7 +2,22 @@
 -- Animação de flutuação SEM recursão, SEM memory leak
 -- ✅ Cole como LocalScript dentro do GamepassButton com nome "FloatAnimation"
 
+-- Proteção contra múltiplas instâncias
 local button = script.Parent
+if not button or not button:IsA("GuiButton") then
+    warn("[FloatAnimation] Parent is not a GuiButton!")
+    script.Enabled = false
+    return
+end
+
+if button:GetAttribute("FloatAnimationActive") then
+    warn("[FloatAnimation] Already active on", button.Name)
+    script.Enabled = false
+    return
+end
+
+button:SetAttribute("FloatAnimationActive", true)
+
 local RunService = game:GetService("RunService")
 
 print("🎈 FloatAnimation iniciando para " .. button.Name)
@@ -55,6 +70,7 @@ end)
 script.AncestryChanged:Connect(function()
     if not script.Parent or script.Disabled then
         connection:Disconnect()
+        button:SetAttribute("FloatAnimationActive", nil)
         running = false
         print("🛑 FloatAnimation script desabilitado/removido")
     end

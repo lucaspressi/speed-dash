@@ -7,6 +7,21 @@
 local button = script.Parent
 local TweenService = game:GetService("TweenService")
 
+-- ✅ VALIDAÇÃO: Verificar se o parent é um botão válido
+if not button:IsA("TextButton") and not button:IsA("ImageButton") then
+    warn("[ButtonAnimator] Script parent is not a Button! Parent:", button.Name, "Type:", button.ClassName)
+    script.Enabled = false
+    return
+end
+
+-- ✅ PROTEÇÃO: Verificar se já existe um ButtonAnimator ativo
+if button:GetAttribute("ButtonAnimatorActive") then
+    warn("[ButtonAnimator] ButtonAnimator already active on", button.Name)
+    script.Enabled = false
+    return
+end
+button:SetAttribute("ButtonAnimatorActive", true)
+
 print("🚀 INICIANDO GAMEPASS BUTTON...")
 
 -- ==================== ENCONTRAR ELEMENTOS ====================
@@ -50,13 +65,15 @@ scale.Scale = 1
 
 print("✅ UIScale configurado")
 
--- ==================== VERIFICAR SE FLOATANIMATION ESTÁ ATIVO ====================
-if floatAnimation and floatAnimation:IsA("LocalScript") then
-    if floatAnimation.Disabled then
-        floatAnimation.Disabled = false
-        print("✅ FloatAnimation ativado")
-    else
-        print("✅ FloatAnimation já estava ativo")
+-- ==================== ATIVAR FLOATANIMATION SE ESTIVER DESABILITADO ====================
+-- Ativar FloatAnimation se estiver desabilitado
+if floatAnimation then
+    -- ✅ Verificar se já está ativo via attribute
+    if not button:GetAttribute("FloatAnimationActive") and not floatAnimation.Enabled then
+        floatAnimation.Enabled = true
+        print("[ButtonAnimator] ✅ FloatAnimation ativa para", button.Name)
+    elseif button:GetAttribute("FloatAnimationActive") then
+        print("[ButtonAnimator] ✅ FloatAnimation já estava ativo")
     end
 end
 
@@ -127,3 +144,10 @@ print("   Usando: " .. valueText.Text)
 print("   FloatAnimation: ✅")
 print("   Hover/Click: ✅")
 print("━━━━━━━━━━━━━━━━━━━━━━━")
+
+-- ✅ CLEANUP: Remover attribute quando o script for destruído
+script.AncestryChanged:Connect(function()
+    if not script.Parent then
+        button:SetAttribute("ButtonAnimatorActive", nil)
+    end
+end)

@@ -67,11 +67,28 @@ if oldPriceLabel then
 	print("[GamepassUpdater] 🗑️ PriceLabel antigo removido")
 end
 
--- Esconder PriceTag que tem "3" hardcoded
+-- Verificar se PriceTag tem conteúdo hardcoded "3"
 local priceTag = button:FindFirstChild("PriceTag")
 if priceTag then
-	priceTag.Visible = false
-	print("[GamepassUpdater] 🗑️ PriceTag escondido (tinha '3' hardcoded)")
+	local hasHardcodedThree = false
+
+	-- Procurar por TextLabels dentro do PriceTag que contenham "3"
+	for _, child in ipairs(priceTag:GetDescendants()) do
+		if child:IsA("TextLabel") and child.Text then
+			local text = tostring(child.Text):lower()
+			if text:match("3") and (text:match("robux") or text:match("only")) then
+				hasHardcodedThree = true
+				break
+			end
+		end
+	end
+
+	if hasHardcodedThree then
+		priceTag.Visible = false
+		print("[GamepassUpdater] 🗑️ PriceTag escondido (tinha '3' hardcoded detectado)")
+	else
+		print("[GamepassUpdater] ✅ PriceTag mantido visível (sem hardcode detectado)")
+	end
 end
 
 -- Limpar texto do OnlyLabel se tiver hardcoded
@@ -111,11 +128,8 @@ local function updateButton(level)
 			OnlyLabel.Visible = (data.nextMult < 16)
 		end
 
-		-- Garantir que PriceTag permanece escondido
-		local priceTag = button:FindFirstChild("PriceTag")
-		if priceTag then
-			priceTag.Visible = false
-		end
+		-- NÃO forçar PriceTag invisível aqui
+		-- A validação inicial já determinou se deve ou não estar visível
 
 		print("[GamepassUpdater] ✅ Botão mostra:", ValueText.Text)
 	end
