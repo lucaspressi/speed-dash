@@ -77,7 +77,8 @@ DataStore2.Combine(
 	"Multiplier", "StepBonus", "GiftClaimed",
 	"TreadmillX3Owned", "TreadmillX9Owned", "TreadmillX25Owned",
 	"SpeedBoostLevel", "WinBoostLevel",
-	"Restricted", "RestrictionReason"
+	"Restricted", "RestrictionReason",
+	"XPSystemMigrated"  -- Flag para migração de XP (fix de jogadores travados)
 )
 
 -- ==================== REMOTES ====================
@@ -195,6 +196,7 @@ local DEFAULT_DATA = {
 	WinBoostLevel = 0,
 	Restricted = false,
 	RestrictionReason = nil,
+	XPSystemMigrated = false,  -- Flag: já migrou para o novo sistema de XP?
 }
 
 -- 🔧 Expose for Command Bar admin tools
@@ -217,6 +219,7 @@ local function getStores(player)
 		WinBoostLevel = DataStore2("WinBoostLevel", player),
 		Restricted = DataStore2("Restricted", player),
 		RestrictionReason = DataStore2("RestrictionReason", player),
+		XPSystemMigrated = DataStore2("XPSystemMigrated", player),
 	}
 end
 
@@ -314,6 +317,53 @@ local function checkLevelUp(data)
 	end
 end
 
+-- ==================== XP SYSTEM MIGRATION ====================
+-- ✅ FIX: Jogadores com XP do sistema antigo ficam travados no novo sistema
+-- Esta função roda APENAS UMA VEZ por jogador e normaliza o XP/Level
+local function migrateXPSystem(player, data)
+	-- Se já migrou, não fazer nada
+	if data.XPSystemMigrated == true then
+		return false
+	end
+
+	debugPrint("MIGRATION", "🔄 Iniciando migração de XP para " .. player.Name)
+	debugPrint("MIGRATION", "  Level atual: " .. data.Level)
+	debugPrint("MIGRATION", "  XP atual: " .. data.XP)
+	debugPrint("MIGRATION", "  XP requerido: " .. data.XPRequired)
+
+	-- Recalcular XPRequired para garantir que está atualizado
+	data.XPRequired = getXPForLevel(data.Level)
+
+	local levelsGained = 0
+	local initialLevel = data.Level
+	local initialXP = data.XP
+
+	-- ✅ Rodar checkLevelUp para normalizar
+	-- Se o jogador tem XP >= XPRequired, vai subir de nível automaticamente
+	checkLevelUp(data)
+
+	levelsGained = data.Level - initialLevel
+
+	-- ✅ Remover win boost (deixar apenas multiplicador desativado)
+	if data.WinBoostActive == true or (data.CurrentWinBoostMultiplier or 1) > 1 then
+		data.WinBoostActive = false
+		data.CurrentWinBoostMultiplier = 1
+		debugPrint("MIGRATION", "  🚫 Win boost removido (multiplier resetado para 1x)")
+	end
+
+	-- Marcar como migrado
+	data.XPSystemMigrated = true
+
+	debugPrint("MIGRATION", "✅ Migração concluída para " .. player.Name)
+	debugPrint("MIGRATION", "  Níveis ganhos: " .. levelsGained)
+	debugPrint("MIGRATION", "  Level final: " .. data.Level)
+	debugPrint("MIGRATION", "  XP final: " .. data.XP)
+	debugPrint("MIGRATION", "  XP requerido final: " .. data.XPRequired)
+
+	-- Sempre retornar true para salvar (mesmo que não tenha upado, precisa salvar a flag)
+	return true
+end
+
 local function updateWalkSpeed(player, data)
 	local character = player.Character
 	if not character then return end
@@ -329,6 +379,18 @@ local function onPlayerAdded(player)
 	local success, err = pcall(function()
 		local data = getPlayerData(player)
 		PlayerData[player.UserId] = data
+
+		-- ✅ MIGRAÇÃO DE XP: Corrige jogadores travados com XP do sistema antigo
+		local needsSave = migrateXPSystem(player, data)
+		if needsSave then
+			-- Salvar os dados migrados imediatamente
+			saveAll(player, data, "xp_migration")
+
+			-- Atualizar UI com os dados migrados
+			UpdateUIEvent:FireClient(player, data)
+
+			debugPrint("MIGRATION", "🎯 Dados migrados salvos e UI atualizada para " .. player.Name)
+		end
 
 		-- ✅ ALWAYS set treadmill ownership attributes (even if false, so client can check)
 		player:SetAttribute("TreadmillX3Owned", data.TreadmillX3Owned == true)
