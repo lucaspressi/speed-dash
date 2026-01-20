@@ -84,35 +84,26 @@ if oldPriceLabel then
 	print("[GamepassUpdater] 🗑️ PriceLabel antigo removido")
 end
 
--- Verificar se PriceTag tem conteúdo hardcoded "3"
-local priceTag = button:FindFirstChild("PriceTag")
-if priceTag then
-	local hasHardcodedThree = false
-
-	-- Procurar por TextLabels dentro do PriceTag que contenham "3"
-	for _, child in ipairs(priceTag:GetDescendants()) do
-		if child:IsA("TextLabel") and child.Text then
-			local text = tostring(child.Text):lower()
-			if text:match("3") and (text:match("robux") or text:match("only")) then
-				hasHardcodedThree = true
-				break
-			end
-		end
-	end
-
-	if hasHardcodedThree then
-		priceTag.Visible = false
-		print("[GamepassUpdater] 🗑️ PriceTag escondido (tinha '3' hardcoded detectado)")
-	else
-		print("[GamepassUpdater] ✅ PriceTag mantido visível (sem hardcode detectado)")
-	end
-end
+-- ⚠️ NÃO ESCONDER O PRICETAG! Apenas limpar textos hardcoded
+-- O PriceTag deve sempre ficar visível para mostrar as animações
 
 -- Limpar texto do OnlyLabel se tiver hardcoded
 if onlyLabel and onlyLabel:IsA("TextLabel") then
-	if onlyLabel.Text == "ONLY 3" or onlyLabel.Text:find("3") or onlyLabel.Text:find("ROBUX") then
-		onlyLabel.Text = "ONLY"
-		print("[GamepassUpdater] 🧹 OnlyLabel texto limpo")
+	local originalText = onlyLabel.Text
+	-- Remover números do texto (deixar apenas "ONLY")
+	onlyLabel.Text = "ONLY"
+	if originalText ~= onlyLabel.Text then
+		print("[GamepassUpdater] 🧹 OnlyLabel limpo:", originalText, "→", onlyLabel.Text)
+	end
+end
+
+-- Limpar ValueText se tiver texto hardcoded (vai ser atualizado depois)
+if valueText and valueText:IsA("TextLabel") then
+	local originalText = valueText.Text
+	-- Se tiver texto inválido, limpar
+	if originalText:match("ONLY") or originalText:match("ROBUX") then
+		valueText.Text = ""
+		print("[GamepassUpdater] 🧹 ValueText limpo:", originalText, "→ (vazio)")
 	end
 end
 
@@ -148,10 +139,10 @@ local function updateButton(level)
 			print("[GamepassUpdater] ✅ ValueText atualizado:", valueText.Text, "R$")
 		end
 
-		-- OnlyLabel deve mostrar apenas para os primeiros boosts (não para 16x)
+		-- OnlyLabel deve estar sempre visível e com texto limpo
 		if onlyLabel then
 			onlyLabel.Text = "ONLY"  -- Garantir que está sem números hardcoded
-			onlyLabel.Visible = (data.nextMult < 16)
+			onlyLabel.Visible = true  -- Sempre visível
 		end
 
 		-- NÃO forçar PriceTag invisível aqui
