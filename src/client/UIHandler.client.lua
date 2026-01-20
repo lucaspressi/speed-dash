@@ -785,7 +785,7 @@ print("UIHandler ready with win notifications!")
 
 -- ==================== CONFIGURAÇÃO DE RESPONSIVIDADE ====================
 -- 🔧 MUDE AQUI: true = ativo | false = desativado
-local MOBILE_RESPONSIVE_ENABLED = true  -- ✅ ATIVADO
+local MOBILE_RESPONSIVE_ENABLED = false  -- ❌ DESATIVADO (estava afetando PC)
 -- ========================================================================
 
 -- ✅ DETECÇÃO ROBUSTA DE MOBILE
@@ -825,6 +825,15 @@ end
 local function setupMobileUI()
 	if not MOBILE_RESPONSIVE_ENABLED then
 		print("[UIHandler] ⚠️ Responsividade mobile DESABILITADA (MOBILE_RESPONSIVE_ENABLED = false)")
+
+		-- ✅ FORÇAR REMOVER qualquer UIScale que possa ter sido criado antes
+		local uiScale = speedGameUI:FindFirstChildOfClass("UIScale")
+		if uiScale and uiScale.Name ~= "BuiltIn" then
+			-- Se não é o UIScale padrão do Roblox, garantir que está em 1.0
+			uiScale.Scale = 1.0
+			print("[UIHandler] 🔧 UIScale forçado para 1.0 (removendo qualquer modificação anterior)")
+		end
+
 		return
 	end
 
