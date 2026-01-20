@@ -1,11 +1,12 @@
--- FLOAT_ANIMATION.lua
+-- FLOAT_ANIMATION_FIXED.lua
 -- Animação de flutuação SEM recursão, SEM memory leak
 -- ✅ Cole como LocalScript dentro do GamepassButton com nome "FloatAnimation"
 
 local button = script.Parent
+local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
-print("🎈 FloatAnimation iniciando para " .. button.Name)
+print("🎈 FloatAnimation FIXED iniciando para " .. button.Name)
 
 -- ==================== CONFIGURAÇÃO ====================
 local FLOAT_DISTANCE = 10  -- pixels para cima e para baixo
@@ -39,7 +40,7 @@ local connection = RunService.Heartbeat:Connect(function(deltaTime)
     )
 end)
 
-print("✅ FloatAnimation ativa para " .. button.Name)
+print("✅ FloatAnimation FIXED ativa para " .. button.Name)
 
 -- ==================== LIMPEZA ADEQUADA ====================
 button.AncestryChanged:Connect(function()
