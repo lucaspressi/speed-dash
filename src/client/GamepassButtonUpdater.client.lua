@@ -80,10 +80,6 @@ local function updateButton(level)
 
 	print("[GamepassUpdater] 🔄 Jogador está no nível:", level)
 
-	-- ==================== DESIGN ORIGINAL ====================
-	-- NÃO modificar ValueText - manter como está no design (16x, 32x, etc)
-	-- Apenas esconder o botão se já tiver MAX
-
 	if level >= 4 then
 		-- Jogador já tem o boost máximo (16x)
 		button.Visible = false  -- Esconder botão quando MAX
@@ -91,8 +87,16 @@ local function updateButton(level)
 	else
 		-- Jogador pode comprar o próximo boost
 		button.Visible = true
-		-- ValueText permanece com o valor original do design
-		print("[GamepassUpdater] ✅ Botão visível (pode comprar próximo boost)")
+
+		-- Atualizar ValueText dinamicamente com o multiplicador que pode comprar
+		ValueText.Text = data.nextMult .. "x"
+
+		-- Esconder OnlyLabel se for o último boost (16x)
+		if OnlyLabel then
+			OnlyLabel.Visible = (data.nextMult ~= 16)
+		end
+
+		print("[GamepassUpdater] ✅ Botão mostra:", ValueText.Text)
 	end
 end
 
