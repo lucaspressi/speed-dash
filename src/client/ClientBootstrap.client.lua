@@ -302,7 +302,10 @@ local function getSpeedBoostMultiplier(level)
 	return math.pow(2, level)
 end
 
--- ✅ ATUALIZA O BOTÃO DE SPEED BOOST
+-- ⚠️ DEPRECATED: Substituído por GamepassButtonUpdater.client.lua
+-- Este sistema antigo foi substituído por um novo script que atualiza dinamicamente
+-- o multiplicador E o preço baseado no Attribute "SpeedBoostLevel" do jogador
+--[[
 local function updateSpeedBoostButton()
 	local screenGui = playerGui:FindFirstChild("SpeedGameUI")
 	if not screenGui then return end
@@ -332,6 +335,7 @@ local function updateSpeedBoostButton()
 		print("Speed Boost button updated: " .. textLabel.Text)
 	end
 end
+--]]
 
 -- ✅ CONECTA O BOTÃO 2X SPEED
 task.spawn(function()
@@ -347,8 +351,8 @@ task.spawn(function()
 				end)
 				print("Speed Boost button connected!")
 
-				-- Atualiza o botão inicialmente
-				updateSpeedBoostButton()
+				-- ⚠️ DEPRECATED: Atualização agora é feita por GamepassButtonUpdater.client.lua
+				-- updateSpeedBoostButton()
 			else
 				print("Warning: Speed Boost button not found (no TextButton/ImageButton)")
 			end
@@ -624,7 +628,8 @@ UpdateUIEvent.OnClientEvent:Connect(function(data)
 
 	if currentSpeedBoostLevel ~= oldSpeedBoostLevel then
 		print("Speed Boost Level changed: " .. oldSpeedBoostLevel .. " → " .. currentSpeedBoostLevel)
-		updateSpeedBoostButton()
+		-- ⚠️ DEPRECATED: Atualização agora é feita por GamepassButtonUpdater.client.lua via Attribute
+		-- updateSpeedBoostButton()
 	end
 
 	-- ✅ COOLDOWN DE VISUAL: Server controla quando mostrar o efeito +XP

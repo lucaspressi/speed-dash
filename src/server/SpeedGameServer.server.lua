@@ -335,6 +335,10 @@ local function onPlayerAdded(player)
 		player:SetAttribute("TreadmillX9Owned", data.TreadmillX9Owned == true)
 		player:SetAttribute("TreadmillX25Owned", data.TreadmillX25Owned == true)
 
+		-- ✅ Set gamepass boost levels for dynamic UI updates
+		player:SetAttribute("SpeedBoostLevel", data.SpeedBoostLevel or 0)
+		player:SetAttribute("WinBoostLevel", data.WinBoostLevel or 0)
+
 		debugPrint("TREADMILL", player.Name .. " ownership attributes set:")
 		debugPrint("TREADMILL", "  x3: " .. tostring(data.TreadmillX3Owned == true))
 		debugPrint("TREADMILL", "  x9: " .. tostring(data.TreadmillX9Owned == true))
@@ -586,6 +590,9 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 			data.SpeedBoostActive = true
 			data.CurrentSpeedBoostMultiplier = newMultiplier
 
+			-- ✅ Atualiza Attribute para o cliente sincronizar o botão
+			player:SetAttribute("SpeedBoostLevel", data.SpeedBoostLevel)
+
 			UpdateUIEvent:FireClient(player, data)
 			saveAll(player, data, "purchase_speedboost")
 
@@ -610,6 +617,9 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 
 			data.WinBoostActive = true
 			data.CurrentWinBoostMultiplier = newMultiplier
+
+			-- ✅ Atualiza Attribute para o cliente sincronizar o botão
+			player:SetAttribute("WinBoostLevel", data.WinBoostLevel)
 
 			UpdateUIEvent:FireClient(player, data)
 			saveAll(player, data, "purchase_winboost")
