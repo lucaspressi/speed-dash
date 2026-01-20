@@ -437,6 +437,188 @@ end
 
 UpdateUIEvent.OnClientEvent:Connect(updateUI)
 
+-- ==================== SISTEMA DE AVISO DE REBIRTH CAP ====================
+local lastRebirthWarning = 0
+local REBIRTH_WARNING_COOLDOWN = 180  -- 3 minutos entre avisos
+local rebirthGlowTween = nil
+
+-- Criar notificação sutil no topo da tela
+local function showRebirthWarning()
+	-- Criar notificação se não existir
+	local notification = speedGameUI:FindFirstChild("RebirthCapNotification")
+	if not notification then
+		notification = Instance.new("Frame")
+		notification.Name = "RebirthCapNotification"
+		notification.Size = UDim2.new(0.5, 0, 0, 60)
+		notification.Position = UDim2.new(0.25, 0, -0.1, 0)  -- Começa fora da tela (topo)
+		notification.AnchorPoint = Vector2.new(0, 0)
+		notification.BackgroundColor3 = Color3.fromRGB(255, 215, 0)  -- Dourado
+		notification.BorderSizePixel = 0
+		notification.ZIndex = 10
+		notification.Parent = speedGameUI
+
+		local uiCorner = Instance.new("UICorner")
+		uiCorner.CornerRadius = UDim.new(0, 12)
+		uiCorner.Parent = notification
+
+		local uiStroke = Instance.new("UIStroke")
+		uiStroke.Color = Color3.fromRGB(255, 255, 255)
+		uiStroke.Thickness = 2
+		uiStroke.Transparency = 0.3
+		uiStroke.Parent = notification
+
+		local icon = Instance.new("TextLabel")
+		icon.Name = "Icon"
+		icon.Size = UDim2.new(0, 40, 0, 40)
+		icon.Position = UDim2.new(0, 10, 0.5, 0)
+		icon.AnchorPoint = Vector2.new(0, 0.5)
+		icon.BackgroundTransparency = 1
+		icon.Text = "⭐"
+		icon.TextSize = 32
+		icon.Font = Enum.Font.GothamBold
+		icon.TextColor3 = Color3.fromRGB(255, 255, 255)
+		icon.ZIndex = 11
+		icon.Parent = notification
+
+		local textLabel = Instance.new("TextLabel")
+		textLabel.Name = "TextLabel"
+		textLabel.Size = UDim2.new(1, -60, 1, 0)
+		textLabel.Position = UDim2.new(0, 55, 0, 0)
+		textLabel.BackgroundTransparency = 1
+		textLabel.Text = "Level Cap Reached! Click Rebirth to continue"
+		textLabel.TextSize = 18
+		textLabel.Font = Enum.Font.GothamBold
+		textLabel.TextColor3 = Color3.fromRGB(50, 50, 50)
+		textLabel.TextXAlignment = Enum.TextXAlignment.Left
+		textLabel.ZIndex = 11
+		textLabel.Parent = notification
+	end
+
+	-- Animar entrada (desce do topo)
+	notification.Position = UDim2.new(0.25, 0, -0.1, 0)
+	notification.Visible = true
+
+	local tweenIn = TweenService:Create(notification, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0.25, 0, 0.05, 0)  -- Desce para 5% da tela
+	})
+	tweenIn:Play()
+
+	print("[UIHandler] 📢 Aviso de rebirth cap exibido")
+
+	-- Aguardar 3 segundos e animar saída (sobe)
+	task.delay(3, function()
+		local tweenOut = TweenService:Create(notification, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Position = UDim2.new(0.25, 0, -0.1, 0)  -- Sobe para fora da tela
+		})
+		tweenOut:Play()
+
+		tweenOut.Completed:Connect(function()
+			notification.Visible = false
+			print("[UIHandler] 📢 Aviso de rebirth cap ocultado")
+		end)
+	end)
+end
+
+-- Adicionar efeito de brilho/reflexo no RebirthFrame
+local function startRebirthGlow()
+	if not rebirthFrame then return end
+
+	-- Criar efeito de brilho se não existir
+	local glow = rebirthFrame:FindFirstChild("CapGlow")
+	if not glow then
+		glow = Instance.new("ImageLabel")
+		glow.Name = "CapGlow"
+		glow.Size = UDim2.new(1.2, 0, 1.2, 0)
+		glow.Position = UDim2.new(0.5, 0, 0.5, 0)
+		glow.AnchorPoint = Vector2.new(0.5, 0.5)
+		glow.BackgroundTransparency = 1
+		glow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"  -- Placeholder, pode substituir
+		glow.ImageColor3 = Color3.fromRGB(255, 215, 0)  -- Dourado
+		glow.ImageTransparency = 0.5
+		glow.ZIndex = rebirthFrame.ZIndex - 1
+		glow.Parent = rebirthFrame
+	end
+
+	-- Cancelar tween anterior se existir
+	if rebirthGlowTween then
+		rebirthGlowTween:Cancel()
+	end
+
+	-- Criar animação de pulso (brilho)
+	glow.ImageTransparency = 0.5
+	glow.Visible = true
+
+	local tweenInfo = TweenInfo.new(
+		1.5,  -- Duração de 1.5 segundos
+		Enum.EasingStyle.Sine,
+		Enum.EasingDirection.InOut,
+		-1,  -- Repetir infinitamente
+		true,  -- Reverter (vai e volta)
+		0
+	)
+
+	rebirthGlowTween = TweenService:Create(glow, tweenInfo, {
+		ImageTransparency = 0.1  -- Fica mais visível
+	})
+
+	rebirthGlowTween:Play()
+
+	print("[UIHandler] ✨ Efeito de brilho no RebirthFrame ativado")
+end
+
+-- Parar efeito de brilho
+local function stopRebirthGlow()
+	if rebirthGlowTween then
+		rebirthGlowTween:Cancel()
+		rebirthGlowTween = nil
+	end
+
+	if rebirthFrame then
+		local glow = rebirthFrame:FindFirstChild("CapGlow")
+		if glow then
+			glow.Visible = false
+			print("[UIHandler] ✨ Efeito de brilho no RebirthFrame desativado")
+		end
+	end
+end
+
+-- Monitorar estado de rebirth cap
+local isAtCap = false
+UpdateUIEvent.OnClientEvent:Connect(function(data)
+	local wasAtCap = isAtCap
+	isAtCap = data.AtRebirthCap or false
+
+	-- Jogador acabou de atingir o cap
+	if isAtCap and not wasAtCap then
+		print("[UIHandler] 🔒 Jogador atingiu rebirth cap")
+
+		-- Mostrar aviso imediatamente
+		showRebirthWarning()
+		lastRebirthWarning = tick()
+
+		-- Ativar efeito de brilho
+		startRebirthGlow()
+
+	-- Jogador não está mais no cap (fez rebirth)
+	elseif not isAtCap and wasAtCap then
+		print("[UIHandler] ✅ Jogador saiu do rebirth cap")
+
+		-- Parar efeito de brilho
+		stopRebirthGlow()
+
+	-- Jogador continua no cap
+	elseif isAtCap then
+		-- Verificar cooldown para mostrar aviso novamente
+		local timeSinceLastWarning = tick() - lastRebirthWarning
+
+		if timeSinceLastWarning >= REBIRTH_WARNING_COOLDOWN then
+			print("[UIHandler] ⏰ Cooldown de aviso passou, mostrando novamente")
+			showRebirthWarning()
+			lastRebirthWarning = tick()
+		end
+	end
+end)
+
 local function openModal(modal)
 	if not modal then return end
 
