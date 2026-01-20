@@ -1,122 +1,169 @@
--- FLOAT ANIMATION - Animação de flutuação do PriceTag
--- ⚠️ VERSÃO CORRIGIDA - Sem recursão infinita, com cleanup adequado
+-- ═══════════════════════════════════════════════════════════════
+-- 🎈 FLOAT_ANIMATION.lua
+-- Animação de flutuação suave para PriceTag (FLUIDA)
+-- ✅ Cole como LocalScript dentro de PriceTag
+-- ═══════════════════════════════════════════════════════════════
 
-local TweenService = game:GetService("TweenService")
+-- ╔═══════════════════════════════════════════════════════════════╗
+-- ║  🎛️ CONFIGURAÇÕES - AJUSTE AQUI!                              ║
+-- ╚═══════════════════════════════════════════════════════════════╝
+
+local CONFIG = {
+	-- 📏 DISTÂNCIA DA FLUTUAÇÃO (em pixels)
+	-- Quanto menor, menos o botão sobe/desce
+	FLOAT_DISTANCE = 5,
+
+	-- ⏱️ DURAÇÃO DO CICLO COMPLETO (em segundos)
+	-- Quanto maior, mais lento o movimento
+	-- Recomendado: 2-4 segundos para movimento suave
+	FLOAT_DURATION = 2.5,
+
+	-- 🎨 ESTILO DE EASING (suavização do movimento)
+	-- Para movimento fluido, use: Sine, Quad, ou Cubic
+	-- EVITE: Bounce, Elastic, Back (causam pausas)
+	EASING_STYLE = Enum.EasingStyle.Sine,
+
+	-- 🎲 DELAY ALEATÓRIO NO INÍCIO (em segundos)
+	-- Para desincronizar múltiplos botões
+	RANDOM_DELAY_MAX = 0.5,
+
+	-- 📊 FREQUÊNCIA DE LOGS (a cada quantos ciclos mostrar log)
+	-- 0 = sem logs
+	LOG_FREQUENCY = 0,
+
+	-- 🐛 MODO DEBUG (mostra todos os logs)
+	DEBUG_MODE = false
+}
+
+-- ╔═══════════════════════════════════════════════════════════════╗
+-- ║  🔧 CÓDIGO (NÃO MEXA ABAIXO DESTA LINHA)                      ║
+-- ╚═══════════════════════════════════════════════════════════════╝
 
 local priceTag = script.Parent
-if not priceTag or not priceTag:IsA("GuiObject") then
-	warn("[FloatAnimation] ⚠️ Script deve estar dentro de um GuiObject (PriceTag)")
+local gamepassButton = priceTag.Parent
+local TweenService = game:GetService("TweenService")
+
+-- ==================== FUNÇÃO DE LOG ====================
+local function log(message, forceShow)
+	if CONFIG.DEBUG_MODE or forceShow then
+		print("[FloatAnimation] " .. message)
+	end
+end
+
+-- ==================== LOG INICIAL ====================
+log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", true)
+log("🎈 Iniciando para: " .. gamepassButton:GetFullName(), true)
+log("📦 PriceTag: " .. priceTag:GetFullName(), true)
+
+-- ==================== VALIDAÇÃO ====================
+if not priceTag:IsA("GuiObject") then
+	warn("[FloatAnimation] ❌ PriceTag deve ser um GuiObject (Frame, ImageLabel, etc)")
 	return
 end
 
-print("[FloatAnimation] ✅ Inicializando para:", priceTag:GetFullName())
-
--- ==================== CONFIGURAÇÕES ====================
-local FLOAT_DISTANCE = 5      -- Pixels de movimento vertical
-local FLOAT_DURATION = 1.5    -- Segundos por ciclo completo
-local EASING_STYLE = Enum.EasingStyle.Sine
-local EASING_DIRECTION = Enum.EasingDirection.InOut
-
--- ==================== ESTADO ====================
-local isRunning = false
-local originalPosition = priceTag.Position
-local currentTween = nil
-
--- ==================== CLEANUP ====================
-local function cleanup()
-	isRunning = false
-
-	if currentTween then
-		currentTween:Cancel()
-		currentTween = nil
-	end
-
-	-- Restaurar posição original
-	priceTag.Position = originalPosition
-
-	print("[FloatAnimation] 🧹 Cleanup realizado")
+if not gamepassButton:IsA("GuiObject") then
+	warn("[FloatAnimation] ❌ GamepassButton deve ser um GuiObject")
+	return
 end
 
--- ==================== ANIMAÇÃO PRINCIPAL ====================
+log("✅ Validação de elementos OK", true)
+
+-- ==================== MOSTRAR CONFIGURAÇÕES ====================
+log("⚙️ Configuração:", true)
+log("   - Distância: " .. CONFIG.FLOAT_DISTANCE .. "px", true)
+log("   - Duração: " .. CONFIG.FLOAT_DURATION .. "s", true)
+log("   - Easing: " .. tostring(CONFIG.EASING_STYLE), true)
+
+-- ==================== VARIÁVEIS DE CONTROLE ====================
+local running = true
+local originalPosition = priceTag.Position
+
+log("📍 Posição original salva", true)
+
+-- ==================== CRIAR POSIÇÕES ====================
+local upPosition = UDim2.new(
+	originalPosition.X.Scale,
+	originalPosition.X.Offset,
+	originalPosition.Y.Scale,
+	originalPosition.Y.Offset - CONFIG.FLOAT_DISTANCE
+)
+
+local downPosition = UDim2.new(
+	originalPosition.X.Scale,
+	originalPosition.X.Offset,
+	originalPosition.Y.Scale,
+	originalPosition.Y.Offset + CONFIG.FLOAT_DISTANCE
+)
+
+log("✅ Posições calculadas", true)
+
+-- ==================== CRIAR TWEENS (APENAS 2 FASES - FLUIDO) ====================
+-- Tempo dividido igualmente entre subir e descer
+local halfDuration = CONFIG.FLOAT_DURATION / 2
+
+local tweenInfoUp = TweenInfo.new(
+	halfDuration,
+	CONFIG.EASING_STYLE,
+	Enum.EasingDirection.InOut,
+	-1,  -- RepeatCount: -1 = infinito
+	true -- Reverses: true = vai e volta automaticamente
+)
+
+-- Criar apenas UM tween que faz o movimento completo
+local tweenFloat = TweenService:Create(priceTag, tweenInfoUp, {Position = upPosition})
+
+log("✅ Tween fluido criado", true)
+
+-- ==================== FUNÇÃO DE LIMPEZA ====================
+local function cleanup()
+	running = false
+	tweenFloat:Cancel()
+	priceTag.Position = originalPosition -- Restaura posição original
+	log("🛑 Animação parada para " .. gamepassButton.Name, true)
+end
+
+-- ==================== INICIAR FLUTUAÇÃO ====================
 local function startFloating()
-	if isRunning then
-		warn("[FloatAnimation] ⚠️ Animação já está rodando!")
-		return
-	end
+	log("🚀 Iniciando flutuação contínua...", true)
 
-	isRunning = true
-	print("[FloatAnimation] 🎬 Iniciando loop de flutuação")
+	-- Tween com repeat infinito e reverse = movimento fluido automático
+	tweenFloat:Play()
 
-	-- Posições de destino
-	local upPosition = UDim2.new(
-		originalPosition.X.Scale,
-		originalPosition.X.Offset,
-		originalPosition.Y.Scale,
-		originalPosition.Y.Offset - FLOAT_DISTANCE
-	)
-
-	local downPosition = originalPosition
-
-	-- Informações do tween
-	local tweenInfo = TweenInfo.new(
-		FLOAT_DURATION / 2,  -- Metade do ciclo completo
-		EASING_STYLE,
-		EASING_DIRECTION,
-		0,  -- Não repetir automaticamente (vamos controlar manualmente)
-		false,  -- Não reverter
-		0  -- Sem delay
-	)
-
-	-- ✅ LOOP SEGURO COM WHILE (não recursão!)
-	task.spawn(function()
-		while isRunning and priceTag and priceTag.Parent do
-			-- Fase 1: Subir
-			if not isRunning then break end
-
-			currentTween = TweenService:Create(priceTag, tweenInfo, {Position = upPosition})
-			currentTween:Play()
-			currentTween.Completed:Wait()
-			currentTween = nil
-
-			-- Fase 2: Descer
-			if not isRunning then break end
-
-			currentTween = TweenService:Create(priceTag, tweenInfo, {Position = downPosition})
-			currentTween:Play()
-			currentTween.Completed:Wait()
-			currentTween = nil
-
-			-- Pequeno delay entre ciclos (opcional, para suavizar)
-			if isRunning then
-				task.wait(0.1)
-			end
-		end
-
-		-- Cleanup ao sair do loop
-		cleanup()
-		print("[FloatAnimation] ⏹️ Loop de flutuação finalizado")
-	end)
+	log("✅ Flutuação ativa (modo contínuo)", true)
 end
 
 -- ==================== EVENTOS DE LIMPEZA ====================
-
--- Parar quando o elemento for destruído
-priceTag.Destroying:Connect(function()
-	print("[FloatAnimation] 🗑️ PriceTag sendo destruído, parando animação")
-	cleanup()
-end)
-
--- Parar quando o elemento sair da hierarquia
-priceTag.AncestryChanged:Connect(function(_, parent)
-	if not parent then
-		print("[FloatAnimation] 📤 PriceTag removido da hierarquia, parando animação")
+priceTag.AncestryChanged:Connect(function()
+	if not priceTag.Parent then
+		log("🗑️ PriceTag removido, limpando...", true)
 		cleanup()
 	end
 end)
 
--- ==================== INICIAR ====================
--- Aguardar 1 frame para garantir que tudo está carregado
-task.wait()
+priceTag.Destroying:Connect(function()
+	log("🗑️ PriceTag sendo destruído, limpando...", true)
+	cleanup()
+end)
+
+gamepassButton.Destroying:Connect(function()
+	log("🗑️ GamepassButton sendo destruído, limpando...", true)
+	cleanup()
+end)
+
+-- ==================== DELAY ALEATÓRIO ====================
+local randomDelay = math.random() * CONFIG.RANDOM_DELAY_MAX
+log("⏳ Aguardando " .. string.format("%.2f", randomDelay) .. "s antes de iniciar...", true)
+task.wait(randomDelay)
+
+-- ==================== INICIAR ANIMAÇÃO ====================
+log("✅ Iniciando animação!", true)
 startFloating()
 
-print("[FloatAnimation] ✅ Sistema de flutuação ativado com sucesso!")
+log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", true)
+log("✅ FLOAT ANIMATION ATIVA!", true)
+log("   🎯 Botão: " .. gamepassButton.Name, true)
+log("   📦 PriceTag: " .. priceTag.Name, true)
+log("   🎈 Distância: " .. CONFIG.FLOAT_DISTANCE .. "px", true)
+log("   ⏱️ Velocidade: " .. CONFIG.FLOAT_DURATION .. "s/ciclo", true)
+log("   🌊 Modo: CONTÍNUO (sem pausas)", true)
+log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", true)
