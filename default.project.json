@@ -17,6 +17,9 @@
       "CleanupBadScripts": {
         "$path": "src/server/CleanupBadScripts.server.lua"
       },
+      "CleanupRadioactivePuddles": {
+        "$path": "src/server/CleanupRadioactivePuddles.server.lua"
+      },
       "SystemValidator": {
         "$path": "src/server/SystemValidator.server.lua"
       },
@@ -126,6 +129,10 @@
       "StarterPlayerScripts": {
         "$path": "src/client"
       }
+    },
+
+    "StarterGui": {
+      "$path": "src/ui/StarterGui.rbxm"
     },
 
     "Workspace": {
