@@ -57,38 +57,18 @@ end
 print("[GamepassUpdater] 🎯 ValueText encontrado:", ValueText:GetFullName())
 print("[GamepassUpdater] 🎯 OnlyLabel encontrado:", OnlyLabel and OnlyLabel:GetFullName() or "NENHUM")
 
--- Criar PriceLabel (texto do preço)
-local PriceLabel = button:FindFirstChild("PriceLabel")
-if not PriceLabel then
-	PriceLabel = Instance.new("TextLabel")
-	PriceLabel.Name = "PriceLabel"
-	PriceLabel.Parent = button
-	PriceLabel.Size = UDim2.new(0, 60, 0, 30)
-	PriceLabel.Position = UDim2.new(0.68, 0, 0.55, 0)
-	PriceLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-	PriceLabel.BackgroundTransparency = 1
-	PriceLabel.Font = Enum.Font.LuckiestGuy
-	PriceLabel.TextSize = 28
-	PriceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	PriceLabel.TextStrokeTransparency = 0.3
-	PriceLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-	PriceLabel.ZIndex = (button.ZIndex or 1) + 2
-	print("[GamepassUpdater] ✅ PriceLabel criado")
+-- ==================== DESIGN ORIGINAL ====================
+-- NÃO criar PriceLabel - usar design original do botão
+-- ValueText já tem "16x", "32x", etc definido no design
+
+-- Deletar PriceLabel antigo se existir
+local oldPriceLabel = button:FindFirstChild("PriceLabel")
+if oldPriceLabel then
+	oldPriceLabel:Destroy()
+	print("[GamepassUpdater] 🗑️ PriceLabel antigo removido")
 end
 
--- Buscar RobuxIcon existente (não criar novo, pois já existe no botão)
-local RobuxIcon = nil
-for _, child in ipairs(button:GetDescendants()) do
-	if child:IsA("ImageLabel") and string.match(child.Image:lower(), "robux") then
-		RobuxIcon = child
-		print("[GamepassUpdater] ✅ RobuxIcon existente encontrado:", child.Name)
-		break
-	end
-end
-
-if not RobuxIcon then
-	warn("[GamepassUpdater] ⚠️ RobuxIcon não encontrado! O preço não mostrará o ícone R$")
-end
+print("[GamepassUpdater] ✅ Usando design original (ValueText permanece como está)")
 
 -- Função de atualização do botão
 local function updateButton(level)
@@ -98,24 +78,21 @@ local function updateButton(level)
 		return
 	end
 
-	print("[GamepassUpdater] 🔄 Atualizando botão para nível:", level)
+	print("[GamepassUpdater] 🔄 Jogador está no nível:", level)
+
+	-- ==================== DESIGN ORIGINAL ====================
+	-- NÃO modificar ValueText - manter como está no design (16x, 32x, etc)
+	-- Apenas esconder o botão se já tiver MAX
 
 	if level >= 4 then
 		-- Jogador já tem o boost máximo (16x)
-		ValueText.Text = "16X SPEED"
-		PriceLabel.Text = "MAX"
-		PriceLabel.TextSize = 24
-		if RobuxIcon then RobuxIcon.Visible = false end
-		if OnlyLabel then OnlyLabel.Visible = false end
-		print("[GamepassUpdater] ✅ Botão mostra MAX (nível 4)")
+		button.Visible = false  -- Esconder botão quando MAX
+		print("[GamepassUpdater] ✅ Botão escondido (jogador já tem boost máximo)")
 	else
 		-- Jogador pode comprar o próximo boost
-		ValueText.Text = data.nextMult .. "X SPEED"
-		PriceLabel.Text = tostring(data.price)
-		PriceLabel.TextSize = 28
-		if RobuxIcon then RobuxIcon.Visible = true end
-		if OnlyLabel then OnlyLabel.Visible = true end
-		print("[GamepassUpdater] ✅ Botão mostra", data.nextMult .. "X por", data.price, "R$")
+		button.Visible = true
+		-- ValueText permanece com o valor original do design
+		print("[GamepassUpdater] ✅ Botão visível (pode comprar próximo boost)")
 	end
 end
 
