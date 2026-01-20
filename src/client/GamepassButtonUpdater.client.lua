@@ -46,7 +46,8 @@ if not button then
 end
 
 -- Elementos do botão (alguns podem não existir, verificar antes de usar)
-local ValueText = button:FindFirstChild("ValueText") or button:FindFirstChild("GamepassText")
+-- ⚠️ IMPORTANTE: GamepassText primeiro! ValueText pode estar dentro de PriceTag
+local ValueText = button:FindFirstChild("GamepassText") or button:FindFirstChild("ValueText")
 local OnlyLabel = button:FindFirstChild("OnlyLabel")
 
 if not ValueText then
@@ -57,9 +58,7 @@ end
 print("[GamepassUpdater] 🎯 ValueText encontrado:", ValueText:GetFullName())
 print("[GamepassUpdater] 🎯 OnlyLabel encontrado:", OnlyLabel and OnlyLabel:GetFullName() or "NENHUM")
 
--- ==================== DESIGN ORIGINAL ====================
--- NÃO criar PriceLabel - usar design original do botão
--- ValueText já tem "16x", "32x", etc definido no design
+-- ==================== LIMPAR ELEMENTOS HARDCODED ====================
 
 -- Deletar PriceLabel antigo se existir
 local oldPriceLabel = button:FindFirstChild("PriceLabel")
@@ -68,7 +67,22 @@ if oldPriceLabel then
 	print("[GamepassUpdater] 🗑️ PriceLabel antigo removido")
 end
 
-print("[GamepassUpdater] ✅ Usando design original (ValueText permanece como está)")
+-- Esconder PriceTag que tem "3" hardcoded
+local priceTag = button:FindFirstChild("PriceTag")
+if priceTag then
+	priceTag.Visible = false
+	print("[GamepassUpdater] 🗑️ PriceTag escondido (tinha '3' hardcoded)")
+end
+
+-- Limpar texto do OnlyLabel se tiver hardcoded
+if OnlyLabel and OnlyLabel:IsA("TextLabel") then
+	if OnlyLabel.Text == "ONLY 3" or OnlyLabel.Text:find("3") or OnlyLabel.Text:find("ROBUX") then
+		OnlyLabel.Text = "ONLY"
+		print("[GamepassUpdater] 🧹 OnlyLabel texto limpo")
+	end
+end
+
+print("[GamepassUpdater] ✅ Elementos hardcoded limpos")
 
 -- Função de atualização do botão
 local function updateButton(level)
@@ -93,8 +107,14 @@ local function updateButton(level)
 
 		-- OnlyLabel deve mostrar apenas para os primeiros boosts (não para 16x)
 		if OnlyLabel then
-			-- Mostrar "ONLY" apenas se NÃO for o boost final
+			OnlyLabel.Text = "ONLY"  -- Garantir que está sem números hardcoded
 			OnlyLabel.Visible = (data.nextMult < 16)
+		end
+
+		-- Garantir que PriceTag permanece escondido
+		local priceTag = button:FindFirstChild("PriceTag")
+		if priceTag then
+			priceTag.Visible = false
 		end
 
 		print("[GamepassUpdater] ✅ Botão mostra:", ValueText.Text)
