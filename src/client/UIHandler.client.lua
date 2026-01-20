@@ -627,6 +627,7 @@ local function openModal(modal)
 
 	if gamepassButton then gamepassButton.Visible = false end
 	if gamepassButton2 then gamepassButton2.Visible = false end
+	if boostFrame then boostFrame.Visible = false end
 
 	TweenService:Create(modal, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 		Size = UDim2.new(0.9, 0, 0, 350)
@@ -648,6 +649,7 @@ local function closeModal(modal)
 		modal.Visible = false
 		if gamepassButton then gamepassButton.Visible = true end
 		if gamepassButton2 then gamepassButton2.Visible = true end
+		if boostFrame then boostFrame.Visible = true end
 	end)
 end
 
