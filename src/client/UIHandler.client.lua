@@ -603,8 +603,41 @@ print("UIHandler ready with win notifications!")
 
 -- ==================== CONFIGURAÇÃO DE RESPONSIVIDADE ====================
 -- 🔧 MUDE AQUI: true = ativo | false = desativado
-local MOBILE_RESPONSIVE_ENABLED = false
+local MOBILE_RESPONSIVE_ENABLED = true  -- ✅ ATIVADO
 -- ========================================================================
+
+-- ✅ DETECÇÃO ROBUSTA DE MOBILE
+local function isMobileDevice()
+	local GuiService = game:GetService("GuiService")
+
+	-- Método 1: Verificar plataforma via GuiService (mais confiável)
+	local platform = GuiService:IsTenFootInterface() and "Console" or
+	                 (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled) and "Mobile" or
+	                 "Desktop"
+
+	print("[UIHandler] 🖥️ Plataforma detectada:", platform)
+
+	-- Método 2: Verificar tamanho da tela (mobile geralmente < 1024px)
+	local screenSize = workspace.CurrentCamera.ViewportSize
+	local isSmallScreen = screenSize.X < 1024 or screenSize.Y < 768
+
+	print("[UIHandler] 📱 Tamanho da tela:", screenSize.X .. "x" .. screenSize.Y)
+	print("[UIHandler] 📏 Tela pequena?", isSmallScreen)
+
+	-- Método 3: Verificar touch sem teclado
+	local hasTouchOnly = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
+	print("[UIHandler] 👆 Touch habilitado?", UserInputService.TouchEnabled)
+	print("[UIHandler] ⌨️ Teclado habilitado?", UserInputService.KeyboardEnabled)
+	print("[UIHandler] 📱 Touch apenas?", hasTouchOnly)
+
+	-- É mobile se: plataforma = Mobile OU (touch sem teclado E tela pequena)
+	local isMobile = platform == "Mobile" or (hasTouchOnly and isSmallScreen)
+
+	print("[UIHandler] 🎯 RESULTADO FINAL: " .. (isMobile and "MOBILE" or "DESKTOP"))
+
+	return isMobile
+end
 
 -- Auto-scale para mobile
 local function setupMobileUI()
@@ -613,7 +646,10 @@ local function setupMobileUI()
 		return
 	end
 
-	local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	print("[UIHandler] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	print("[UIHandler] 🔍 Detectando plataforma...")
+
+	local isMobile = isMobileDevice()
 
 	local uiScale = speedGameUI:FindFirstChildOfClass("UIScale")
 	if not uiScale then
@@ -622,8 +658,9 @@ local function setupMobileUI()
 	end
 
 	if isMobile then
+		-- ✅ APLICAR AJUSTES MOBILE
 		uiScale.Scale = 1.4
-		print("[UIHandler] Mobile detected - UI scaled to 1.4x")
+		print("[UIHandler] ✅ Mobile detectado - UI escalada para 1.4x")
 
 		-- ✅ AJUSTE MOBILE: Reposiciona WinsFrame/RebirthFrame para não serem cobertos pelo chat
 		if winsFrame then
@@ -647,10 +684,16 @@ local function setupMobileUI()
 			)
 			print("[UIHandler] 📱 RebirthFrame reposicionado para mobile (Y=0.12)")
 		end
+
+		print("[UIHandler] ✅ Ajustes mobile aplicados com sucesso!")
 	else
+		-- ✅ MANTER PADRÃO DESKTOP (sem mudanças)
 		uiScale.Scale = 1.0
-		print("[UIHandler] Desktop detected - UI scale 1.0x")
+		print("[UIHandler] ✅ Desktop detectado - UI mantida em 1.0x (padrão)")
+		print("[UIHandler] ℹ️ WinsFrame e RebirthFrame mantidos nas posições originais")
 	end
+
+	print("[UIHandler] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 end
 
 -- Chama após tudo carregar
