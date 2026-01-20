@@ -604,8 +604,18 @@ end
 
 print("UIHandler ready with win notifications!")
 
+-- ==================== CONFIGURAÇÃO DE RESPONSIVIDADE ====================
+-- 🔧 MUDE AQUI: true = ativo | false = desativado
+local MOBILE_RESPONSIVE_ENABLED = false
+-- ========================================================================
+
 -- Auto-scale para mobile
 local function setupMobileUI()
+	if not MOBILE_RESPONSIVE_ENABLED then
+		print("[UIHandler] ⚠️ Responsividade mobile DESABILITADA (MOBILE_RESPONSIVE_ENABLED = false)")
+		return
+	end
+
 	local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
 	local uiScale = speedGameUI:FindFirstChildOfClass("UIScale")
