@@ -132,7 +132,10 @@
     },
 
     "StarterGui": {
-      "$path": "src/ui/StarterGui.rbxm"
+      "$className": "StarterGui",
+      "SpeedGameUI": {
+        "$path": "src/ui/SpeedGameUI.rbxm"
+      }
     },
 
     "Workspace": {
