@@ -522,6 +522,67 @@ local function showRebirthWarning()
 	end)
 end
 
+-- 🎯 ANIMAÇÃO DO BOTÃO DE REBIRTH (shake + pulse)
+local rebirthButtonTween = nil
+
+local function startRebirthButtonAnimation()
+	if not rebirthBtn then return end
+
+	print("[UIHandler] 🎯 Iniciando animação do botão de Rebirth")
+
+	-- Salvar posição e tamanho originais
+	local originalPosition = rebirthBtn.Position
+	local originalSize = rebirthBtn.Size
+
+	-- Animação de SHAKE (tremor lateral) em loop
+	task.spawn(function()
+		while rebirthBtn and isAtCap do
+			-- Sequência de tremor
+			rebirthBtn.Position = originalPosition + UDim2.new(0, 5, 0, 0)
+			task.wait(0.1)
+			if not isAtCap then break end
+			rebirthBtn.Position = originalPosition + UDim2.new(0, -5, 0, 0)
+			task.wait(0.1)
+			if not isAtCap then break end
+			rebirthBtn.Position = originalPosition + UDim2.new(0, 3, 0, 0)
+			task.wait(0.1)
+			if not isAtCap then break end
+			rebirthBtn.Position = originalPosition + UDim2.new(0, -3, 0, 0)
+			task.wait(0.1)
+			if not isAtCap then break end
+			rebirthBtn.Position = originalPosition
+			task.wait(2)  -- Pausa de 2 segundos entre shakes
+		end
+		-- Restaurar posição ao sair do loop
+		if rebirthBtn then
+			rebirthBtn.Position = originalPosition
+		end
+	end)
+
+	-- Animação de PULSE (crescer/encolher)
+	local pulseTween = TweenService:Create(
+		rebirthBtn,
+		TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+		{Size = originalSize * 1.1}  -- Cresce 10%
+	)
+	pulseTween:Play()
+	rebirthButtonTween = pulseTween
+end
+
+local function stopRebirthButtonAnimation()
+	if rebirthButtonTween then
+		rebirthButtonTween:Cancel()
+		rebirthButtonTween = nil
+	end
+
+	if rebirthBtn then
+		-- Restaurar tamanho original (ajuste conforme necessário)
+		local originalSize = UDim2.new(0, 180, 0, 60)  -- Tamanho padrão
+		rebirthBtn.Size = originalSize
+		print("[UIHandler] 🎯 Animação do botão de Rebirth parada")
+	end
+end
+
 -- Adicionar efeito de brilho/reflexo no RebirthFrame
 local function startRebirthGlow()
 	if not rebirthFrame then return end
