@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
 local UserInputService = game:GetService("UserInputService")
+local GroupService = game:GetService("GroupService")
 
 -- ✅ Import ProgressionConfig for centralized rebirth tiers
 local ProgressionConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ProgressionConfig"))
@@ -37,7 +38,7 @@ end
 
 print("[UIHandler] ✅ All RemoteEvents found")
 
-local GROUP_ID = 0 -- Replace with your group ID
+local GROUP_ID = 848320098 -- Speed Dash Community Group ID
 
 -- Wait for UI (with timeout to prevent blocking)
 local speedGameUI = playerGui:WaitForChild("SpeedGameUI", 10)
@@ -91,6 +92,7 @@ local freeGiftCloseButton = freeGiftModal and freeGiftModal:FindFirstChild("Clos
 local step1Frame = freeGiftModal and freeGiftModal:FindFirstChild("Step1Frame")
 local step2Frame = freeGiftModal and freeGiftModal:FindFirstChild("Step2Frame")
 local verifyButton = freeGiftModal and freeGiftModal:FindFirstChild("VerifyButton")
+local joinGroupButton = step2Frame and step2Frame:FindFirstChild("JoinGroupButton")  -- ✅ FIXED: Button is inside Step2Frame
 local step1Check = step1Frame and step1Frame:FindFirstChild("Checkmark")
 local step2Check = step2Frame and step2Frame:FindFirstChild("Checkmark")
 
@@ -681,7 +683,13 @@ end
 if freeButton then
 	freeButton.MouseButton1Click:Connect(function()
 		openModal(freeGiftModal)
-		if step1Check then step1Check.Visible = true end
+		-- Verificar se jogador já está no grupo ao abrir o modal
+		local success, isInGroup = pcall(function()
+			return player:IsInGroup(GROUP_ID)
+		end)
+		if success and isInGroup then
+			if step1Check then step1Check.Visible = true end
+		end
 	end)
 end
 
@@ -691,7 +699,132 @@ if freeGiftCloseButton then
 	end)
 end
 
+-- 🔗 Botão para copiar link do jogo (novo)
+local copyGameLinkButton = step2Frame and step2Frame:FindFirstChild("CopyGameLinkButton")
+if copyGameLinkButton then
+	copyGameLinkButton.Interactable = true
+	copyGameLinkButton.BackgroundTransparency = 1
+	copyGameLinkButton.Size = UDim2.new(0, 70, 0, 70)
+	copyGameLinkButton.AnchorPoint = Vector2.new(0.5, 0.5)
+
+	-- Posicionar ao lado do JoinGroupButton
+	copyGameLinkButton.Position = UDim2.new(0.7, 0, 0.5, 0)
+	print("[UIHandler] 🎨 CopyGameLinkButton style adjusted")
+
+	copyGameLinkButton.MouseButton1Click:Connect(function()
+		print("[UIHandler] 🔗 Copy Game Link button clicked!")
+
+		-- Copiar link do jogo para clipboard
+		local gameLink = "https://www.roblox.com/games/" .. game.PlaceId
+		local success, err = pcall(function()
+			game:GetService("StarterGui"):SetCore("SendNotification", {
+				Title = "Link Copiado!",
+				Text = "Cole o link para convidar amigos!",
+				Duration = 3
+			})
+			-- Roblox não tem API direta para copiar, mas mostra notificação
+			print("[UIHandler] ✅ Game link: " .. gameLink)
+		end)
+
+		if success then
+			-- Feedback visual
+			copyGameLinkButton.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+			task.delay(1.5, function()
+				copyGameLinkButton.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
+			end)
+		else
+			warn("[UIHandler] ⚠️ Error showing notification: " .. tostring(err))
+		end
+	end)
+	print("[UIHandler] ✅ Copy Game Link button handler connected!")
+end
+
+-- Botão para abrir prompt nativo de juntar-se ao grupo
+if joinGroupButton then
+	-- ✅ Garantir que o botão seja interactável
+	joinGroupButton.Interactable = true
+
+	-- 🎨 Ajustar aparência do botão (fundo transparente, menor, centralizado)
+	joinGroupButton.BackgroundTransparency = 1  -- Fundo transparente
+	joinGroupButton.Size = UDim2.new(0, 70, 0, 70)  -- Menor (70x70 pixels)
+	joinGroupButton.AnchorPoint = Vector2.new(0.5, 0.5)  -- Centralizar pivot
+	joinGroupButton.Position = UDim2.new(0.3, 0, 0.5, 0)  -- Lado esquerdo
+	print("[UIHandler] 🎨 JoinGroupButton style adjusted: transparent background, 70x70 size, left side")
+
+	joinGroupButton.MouseButton1Click:Connect(function()
+		print("[UIHandler] 🎯 Join Group button clicked! Opening Roblox native prompt...")
+
+		-- Verificar se já está no grupo
+		local alreadyInGroup = false
+		local checkSuccess, checkResult = pcall(function()
+			return player:IsInGroup(GROUP_ID)
+		end)
+
+		if checkSuccess and checkResult then
+			alreadyInGroup = true
+			print("[UIHandler] ✅ Player is already in the group!")
+			if step1Check then step1Check.Visible = true end
+
+			-- Atualizar o botão para mostrar que já está no grupo
+			-- (ImageButton não tem .Text, apenas muda a cor)
+			joinGroupButton.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+			return
+		end
+
+		-- Mostrar que está processando
+		joinGroupButton.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+
+		-- Chamar a função nativa do Roblox para abrir o prompt de juntar-se ao grupo
+		local success, result = pcall(function()
+			return GroupService:PromptJoinAsync(GROUP_ID)
+		end)
+
+		if success then
+			print("[UIHandler] 📋 PromptJoinAsync result: " .. tostring(result))
+
+			if result == Enum.GroupMembershipStatus.Joined then
+				-- Jogador se juntou com sucesso!
+				print("[UIHandler] ✅ Player successfully joined the group!")
+				if step1Check then step1Check.Visible = true end
+				joinGroupButton.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+
+			elseif result == Enum.GroupMembershipStatus.JoinRequestPending then
+				-- Join request enviado (para grupos que requerem aprovação manual)
+				print("[UIHandler] 📤 Join request pending approval")
+				joinGroupButton.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+				task.delay(2, function()
+					joinGroupButton.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
+				end)
+
+			elseif result == Enum.GroupMembershipStatus.AlreadyMember then
+				-- Jogador já era membro
+				print("[UIHandler] ✅ Player was already a member!")
+				if step1Check then step1Check.Visible = true end
+				joinGroupButton.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+
+			else
+				-- Jogador cancelou ou não completou
+				print("[UIHandler] ❌ Player did not join (cancelled or ineligible)")
+				joinGroupButton.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
+			end
+		else
+			-- Erro ao chamar PromptJoinAsync
+			warn("[UIHandler] ⚠️ Error calling PromptJoinAsync: " .. tostring(result))
+			joinGroupButton.BackgroundColor3 = Color3.fromRGB(220, 80, 80)
+			task.delay(2, function()
+				joinGroupButton.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
+			end)
+		end
+	end)
+	print("[UIHandler] ✅ Join Group button handler connected!")
+else
+	warn("[UIHandler] ⚠️ JoinGroupButton not found in FreeGiftModal - group join prompt will not work")
+end
+
 if verifyButton then
+	-- ✅ Garantir que o botão seja interactável
+	verifyButton.Interactable = true
+
 	verifyButton.MouseButton1Click:Connect(function()
 		if giftClaimed then return end
 
