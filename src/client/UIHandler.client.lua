@@ -92,6 +92,7 @@ local freeGiftCloseButton = freeGiftModal and freeGiftModal:FindFirstChild("Clos
 local step1Frame = freeGiftModal and freeGiftModal:FindFirstChild("Step1Frame")
 local step2Frame = freeGiftModal and freeGiftModal:FindFirstChild("Step2Frame")
 local verifyButton = freeGiftModal and freeGiftModal:FindFirstChild("VerifyButton")
+local likeGameButton = step1Frame and step1Frame:FindFirstChild("LikeGameButton")  -- 👍 Botão de Like
 local joinGroupButton = step2Frame and step2Frame:FindFirstChild("JoinGroupButton")  -- ✅ FIXED: Button is inside Step2Frame
 local step1Check = step1Frame and step1Frame:FindFirstChild("Checkmark")
 local step2Check = step2Frame and step2Frame:FindFirstChild("Checkmark")
@@ -699,44 +700,68 @@ if freeGiftCloseButton then
 	end)
 end
 
--- 🔗 Botão para copiar link do jogo (novo)
-local copyGameLinkButton = step2Frame and step2Frame:FindFirstChild("CopyGameLinkButton")
-if copyGameLinkButton then
-	copyGameLinkButton.Interactable = true
-	copyGameLinkButton.BackgroundTransparency = 1
-	copyGameLinkButton.Size = UDim2.new(0, 70, 0, 70)
-	copyGameLinkButton.AnchorPoint = Vector2.new(0.5, 0.5)
+-- 👍 Botão para dar LIKE no jogo (Step 1)
+if likeGameButton then
+	likeGameButton.Interactable = true
+	likeGameButton.BackgroundTransparency = 1
+	likeGameButton.Size = UDim2.new(0, 70, 0, 70)
+	likeGameButton.AnchorPoint = Vector2.new(0.5, 0.5)
+	likeGameButton.Position = UDim2.new(0.5, 0, 0.5, 0)
+	print("[UIHandler] 🎨 LikeGameButton style adjusted")
 
-	-- Posicionar ao lado do JoinGroupButton
-	copyGameLinkButton.Position = UDim2.new(0.7, 0, 0.5, 0)
-	print("[UIHandler] 🎨 CopyGameLinkButton style adjusted")
+	likeGameButton.MouseButton1Click:Connect(function()
+		print("[UIHandler] 👍 Like Game button clicked! Opening favorite prompt...")
 
-	copyGameLinkButton.MouseButton1Click:Connect(function()
-		print("[UIHandler] 🔗 Copy Game Link button clicked!")
+		-- Feedback visual imediato
+		likeGameButton.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
 
-		-- Copiar link do jogo para clipboard
-		local gameLink = "https://www.roblox.com/games/" .. game.PlaceId
-		local success, err = pcall(function()
-			game:GetService("StarterGui"):SetCore("SendNotification", {
-				Title = "Link Copiado!",
-				Text = "Cole o link para convidar amigos!",
-				Duration = 3
-			})
-			-- Roblox não tem API direta para copiar, mas mostra notificação
-			print("[UIHandler] ✅ Game link: " .. gameLink)
+		-- Abrir o prompt nativo do Roblox para favoritar o jogo
+		local SocialService = game:GetService("SocialService")
+		local success, result = pcall(function()
+			-- CanSendGameInviteAsync verifica se o player pode dar like
+			if SocialService.CanSendGameInviteAsync then
+				local canInvite = SocialService:CanSendGameInviteAsync(player)
+				if canInvite then
+					-- Abre prompt de convite/like do jogo
+					SocialService:PromptGameInvite(player)
+					return true
+				else
+					return false
+				end
+			else
+				-- Fallback: tentar abrir de qualquer forma
+				SocialService:PromptGameInvite(player)
+				return true
+			end
 		end)
 
-		if success then
-			-- Feedback visual
-			copyGameLinkButton.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
-			task.delay(1.5, function()
-				copyGameLinkButton.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
-			end)
+		if success and result then
+			print("[UIHandler] ✅ Like prompt opened successfully!")
+			if step1Check then step1Check.Visible = true end
+			likeGameButton.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+
+			-- Notificação
+			game:GetService("StarterGui"):SetCore("SendNotification", {
+				Title = "Obrigado! 👍",
+				Text = "Favorite o jogo para ganhar o gift!",
+				Duration = 3
+			})
 		else
-			warn("[UIHandler] ⚠️ Error showing notification: " .. tostring(err))
+			-- Erro ou player cancelou
+			warn("[UIHandler] ⚠️ Could not open like prompt: " .. tostring(result))
+			likeGameButton.BackgroundColor3 = Color3.fromRGB(80, 120, 200)
+
+			-- Fallback: Mostrar notificação manual
+			game:GetService("StarterGui"):SetCore("SendNotification", {
+				Title = "👍 Like o Jogo!",
+				Text = "Clique no botão de Like na página do jogo!",
+				Duration = 4
+			})
 		end
 	end)
-	print("[UIHandler] ✅ Copy Game Link button handler connected!")
+	print("[UIHandler] ✅ Like Game button handler connected!")
+else
+	warn("[UIHandler] ⚠️ LikeGameButton not found in Step1Frame - like prompt will not work")
 end
 
 -- Botão para abrir prompt nativo de juntar-se ao grupo
