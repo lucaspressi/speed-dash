@@ -56,9 +56,7 @@ local function giveAllToPlayer(targetPlayer)
 	targetPlayer:SetAttribute("SpeedBoostLevel", 4)
 	targetPlayer:SetAttribute("SpeedBoostActive", true)
 	targetPlayer:SetAttribute("CurrentSpeedBoostMultiplier", 16)
-	targetPlayer:SetAttribute("WinBoostLevel", 4)
-	targetPlayer:SetAttribute("WinBoostActive", true)
-	targetPlayer:SetAttribute("CurrentWinBoostMultiplier", 16)
+	-- Win Boost REMOVIDO - mantém em 0 (sem multiplicação de trofeus)
 
 	-- Salvar no DataStore
 	local data = AdminAPI.getPlayerData(targetPlayer.UserId)
@@ -69,9 +67,7 @@ local function giveAllToPlayer(targetPlayer)
 		data.SpeedBoostLevel = 4
 		data.SpeedBoostActive = true
 		data.CurrentSpeedBoostMultiplier = 16
-		data.WinBoostLevel = 4
-		data.WinBoostActive = true
-		data.CurrentWinBoostMultiplier = 16
+		-- Win Boost REMOVIDO - mantém em 0
 
 		AdminAPI.saveAll(targetPlayer, data, "admin_giveall")
 	end
@@ -88,11 +84,11 @@ local commands = {
 			end
 
 			giveAllToPlayer(targetPlayer)
-			return "✅ TUDO LIBERADO para " .. targetPlayer.Name .. "! (Esteiras 3x/9x/25x + Speed Boost 16x + Win Boost 16x)"
+			return "✅ TUDO LIBERADO para " .. targetPlayer.Name .. "! (Esteiras 3x/9x/25x + Speed Boost 16x)"
 		else
 			-- Dar para si mesmo
 			giveAllToPlayer(player)
-			return "✅ TUDO LIBERADO! (Esteiras 3x/9x/25x + Speed Boost 16x + Win Boost 16x)"
+			return "✅ TUDO LIBERADO! (Esteiras 3x/9x/25x + Speed Boost 16x)"
 		end
 	end,
 
@@ -171,63 +167,24 @@ local commands = {
 		end
 	end,
 
-	["/givewin"] = function(player, args)
-		if not args[1] then
-			return "❌ Use: /givewin <0-4> [playerName] (0=1x, 1=2x, 2=4x, 3=8x, 4=16x)"
-		end
-
-		local level = tonumber(args[1])
-		if not level or level < 0 or level > 4 then
-			return "❌ Use: /givewin <0-4> [playerName] (0=1x, 1=2x, 2=4x, 3=8x, 4=16x)"
-		end
-
-		-- Se tiver segundo argumento, dar para outro player
-		local targetPlayer = player
-		if args[2] then
-			targetPlayer = findPlayerByNameOrId(args[2])
-			if not targetPlayer then
-				return "❌ Player '" .. args[2] .. "' não encontrado online"
-			end
-		end
-
-		local multiplier = level > 0 and math.pow(2, level) or 1
-
-		targetPlayer:SetAttribute("WinBoostLevel", level)
-		targetPlayer:SetAttribute("WinBoostActive", level > 0)
-		targetPlayer:SetAttribute("CurrentWinBoostMultiplier", multiplier)
-
-		local data = AdminAPI.getPlayerData(targetPlayer.UserId)
-		if data then
-			data.WinBoostLevel = level
-			data.WinBoostActive = level > 0
-			data.CurrentWinBoostMultiplier = multiplier
-			AdminAPI.saveAll(targetPlayer, data, "admin_winboost")
-		end
-
-		if targetPlayer == player then
-			return "✅ Win Boost " .. multiplier .. "x liberado!"
-		else
-			return "✅ Win Boost " .. multiplier .. "x liberado para " .. targetPlayer.Name .. "!"
-		end
-	end,
+	-- ❌ /givewin REMOVIDO - Win boost foi desabilitado para economia de teletransporte
 
 	["/adminhelp"] = function(player)
 		local help = "🔧 COMANDOS ADMIN DISPONÍVEIS:\n\n"
 		help = help .. "PARA VOCÊ MESMO:\n"
 		help = help .. "/giveall - Libera tudo para você\n"
 		help = help .. "/givetreadmill <3,9,25> - Libera esteira para você\n"
-		help = help .. "/givespeed <0-4> - Speed boost para você\n"
-		help = help .. "/givewin <0-4> - Win boost para você\n\n"
+		help = help .. "/givespeed <0-4> - Speed boost para você\n\n"
 		help = help .. "PARA OUTROS PLAYERS:\n"
 		help = help .. "/giveall <playerName> - Libera tudo para outro player\n"
 		help = help .. "/givetreadmill <3,9,25> <playerName> - Libera esteira para outro\n"
-		help = help .. "/givespeed <0-4> <playerName> - Speed boost para outro\n"
-		help = help .. "/givewin <0-4> <playerName> - Win boost para outro\n\n"
+		help = help .. "/givespeed <0-4> <playerName> - Speed boost para outro\n\n"
 		help = help .. "EXEMPLOS:\n"
 		help = help .. "/giveall Lucas - Dá tudo para player Lucas\n"
 		help = help .. "/givespeed 4 Joao - Dá speed 16x para Joao\n"
 		help = help .. "/givetreadmill 25 Maria - Dá esteira 25x para Maria\n\n"
-		help = help .. "NÍVEIS: 0=1x, 1=2x, 2=4x, 3=8x, 4=16x"
+		help = help .. "NÍVEIS SPEED: 0=1x, 1=2x, 2=4x, 3=8x, 4=16x\n"
+		help = help .. "NOTA: Win Boost foi removido do jogo"
 		return help
 	end,
 }

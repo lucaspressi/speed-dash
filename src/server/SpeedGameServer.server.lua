@@ -663,33 +663,20 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 		end
 	end
 
-	-- ✅ WIN BOOST EXP (só aceita o ProductId do próximo nível)
+	-- ❌ WIN BOOST DESABILITADO - Sistema de trofeus agora é economia fixa
+	-- Win Boost foi removido para permitir sistema de teletransporte com custo em trofeus
+	-- Gamepass de Win Boost não será mais processado
+	--[[
 	do
 		local currentLevel = data.WinBoostLevel or 0
 		local expectedProductId, nextLevel = getNextWinBoostProductId(currentLevel)
 
-		debugPrint("PURCHASE", "Checking Win Boost: ProductId=" .. receiptInfo.ProductId .. " Current=" .. currentLevel .. " Expected=" .. tostring(expectedProductId))
-
 		if expectedProductId and expectedProductId ~= 0 and receiptInfo.ProductId == expectedProductId then
-			data.WinBoostLevel = nextLevel
-			local newMultiplier = getWinBoostMultiplier(data.WinBoostLevel)
-
-			debugPrint("PURCHASE", player.Name .. " purchased Win Boost!")
-			debugPrint("PURCHASE", "  New Level: " .. data.WinBoostLevel)
-			debugPrint("PURCHASE", "  New Multiplier: " .. newMultiplier .. "x")
-
-			data.WinBoostActive = true
-			data.CurrentWinBoostMultiplier = newMultiplier
-
-			-- ✅ Atualiza Attribute para o cliente sincronizar o botão
-			player:SetAttribute("WinBoostLevel", data.WinBoostLevel)
-
-			UpdateUIEvent:FireClient(player, data)
-			saveAll(player, data, "purchase_winboost")
-
-			return Enum.ProductPurchaseDecision.PurchaseGranted
+			-- Win boost desabilitado
+			return Enum.ProductPurchaseDecision.NotProcessedYet
 		end
 	end
+	]]
 
 	-- Speed XP Products (Pacotes de Velocidade)
 	if receiptInfo.ProductId == SPEED_100K_PRODUCT_ID then
@@ -1144,16 +1131,14 @@ for _, winBlock in ipairs(winBlocks) do
 
 				local winAmount = winAmounts[winBlock.Name] or 1
 
-				-- ✅ Aplica Win Boost Multiplier (x2, x4, x8, x16...)
-				local winBoostMultiplier = getWinBoostMultiplier(d.WinBoostLevel or 0)
-				winAmount *= winBoostMultiplier
-
+				-- ✅ Win boost REMOVIDO - Wins agora são valores fixos (sem multiplicação)
+				-- Mantém winAmount como está para economia de teletransporte funcionar
 				d.Wins += winAmount
 				UpdateUIEvent:FireClient(player, d)
 				updateLeaderstats(player, d)
 				saveAll(player, d, "win_block")
 
-				debugPrint("WIN", player.Name .. " won +" .. winAmount .. "! (Base: " .. (winAmounts[winBlock.Name] or 1) .. " × WinBoost: " .. winBoostMultiplier .. "x)")
+				debugPrint("WIN", player.Name .. " won +" .. winAmount .. " trophies!")
 
 				-- ✅ Mostra notificação com o valor correto (DEPOIS de aplicar boost)
 				ShowWinEvent:FireClient(player, winAmount)
