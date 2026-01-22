@@ -80,6 +80,9 @@
       "ClientTestListener": {
         "$path": "src/server/ClientTestListener.server.lua"
       },
+      "AdminChatCommands": {
+        "$path": "src/server/AdminChatCommands.server.lua"
+      },
       "SmokeTest": {
         "$path": "src/server/SmokeTest.server.lua"
       },

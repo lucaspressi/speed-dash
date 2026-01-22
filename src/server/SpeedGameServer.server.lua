@@ -10,6 +10,7 @@ local BadgeService = game:GetService("BadgeService")
 local ADMIN_USER_IDS = {
 	[10286998085] = true,
 	[10291926911] = true,
+	[10345555230] = true, -- Novo admin
 }
 
 local WELCOME_BADGE_ID = 0
