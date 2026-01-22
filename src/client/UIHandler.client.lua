@@ -588,11 +588,27 @@ end
 -- Monitorar estado de rebirth cap
 local isAtCap = false
 local currentPlayerData = nil  -- 🔄 Armazena dados atuais do player
+local isFirstUpdate = true  -- 🔄 Flag para detectar primeiro update após login
 
 UpdateUIEvent.OnClientEvent:Connect(function(data)
 	currentPlayerData = data  -- 🔄 Atualiza dados armazenados
 	local wasAtCap = isAtCap
 	isAtCap = data.AtRebirthCap or false
+
+	-- 🔄 PRIMEIRO UPDATE APÓS LOGIN: Verifica se já está no cap
+	if isFirstUpdate then
+		isFirstUpdate = false
+
+		if isAtCap then
+			print("[UIHandler] 🔒 Player LOGOU já no cap - Mostrando aviso imediatamente")
+			showRebirthWarning()
+			lastRebirthWarning = tick()
+			startRebirthGlow()
+			-- Iniciar animação do botão de Rebirth
+			startRebirthButtonAnimation()
+		end
+		return  -- Não processar lógica de mudança de estado no primeiro update
+	end
 
 	-- Jogador acabou de atingir o cap
 	if isAtCap and not wasAtCap then
@@ -605,12 +621,18 @@ UpdateUIEvent.OnClientEvent:Connect(function(data)
 		-- Ativar efeito de brilho
 		startRebirthGlow()
 
+		-- Iniciar animação do botão
+		startRebirthButtonAnimation()
+
 	-- Jogador não está mais no cap (fez rebirth)
 	elseif not isAtCap and wasAtCap then
 		print("[UIHandler] ✅ Jogador saiu do rebirth cap")
 
 		-- Parar efeito de brilho
 		stopRebirthGlow()
+
+		-- Parar animação do botão
+		stopRebirthButtonAnimation()
 
 	-- Jogador continua no cap
 	elseif isAtCap then
