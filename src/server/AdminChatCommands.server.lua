@@ -98,12 +98,12 @@ local commands = {
 
 	["/givetreadmill"] = function(player, args)
 		if not args[1] then
-			return "❌ Use: /givetreadmill <3|9|25> [playerName]"
+			return "❌ Use: /givetreadmill <3,9,25> [playerName]"
 		end
 
 		local multiplier = tonumber(args[1])
 		if not multiplier or (multiplier ~= 3 and multiplier ~= 9 and multiplier ~= 25) then
-			return "❌ Use: /givetreadmill <3|9|25> [playerName]"
+			return "❌ Use: /givetreadmill <3,9,25> [playerName]"
 		end
 
 		-- Se tiver segundo argumento, dar para outro player
@@ -212,28 +212,23 @@ local commands = {
 	end,
 
 	["/adminhelp"] = function(player)
-		return [[
-🔧 COMANDOS ADMIN DISPONÍVEIS:
-
-PARA VOCÊ MESMO:
-/giveall - Libera tudo para você
-/givetreadmill <3|9|25> - Libera esteira para você
-/givespeed <0-4> - Speed boost para você
-/givewin <0-4> - Win boost para você
-
-PARA OUTROS PLAYERS:
-/giveall <playerName> - Libera tudo para outro player
-/givetreadmill <3|9|25> <playerName> - Libera esteira para outro
-/givespeed <0-4> <playerName> - Speed boost para outro
-/givewin <0-4> <playerName> - Win boost para outro
-
-EXEMPLOS:
-/giveall Lucas - Dá tudo para player "Lucas"
-/givespeed 4 Joao - Dá speed 16x para "Joao"
-/givetreadmill 25 Maria - Dá esteira 25x para "Maria"
-
-NÍVEIS: 0=1x, 1=2x, 2=4x, 3=8x, 4=16x
-]]
+		local help = "🔧 COMANDOS ADMIN DISPONÍVEIS:\n\n"
+		help = help .. "PARA VOCÊ MESMO:\n"
+		help = help .. "/giveall - Libera tudo para você\n"
+		help = help .. "/givetreadmill <3,9,25> - Libera esteira para você\n"
+		help = help .. "/givespeed <0-4> - Speed boost para você\n"
+		help = help .. "/givewin <0-4> - Win boost para você\n\n"
+		help = help .. "PARA OUTROS PLAYERS:\n"
+		help = help .. "/giveall <playerName> - Libera tudo para outro player\n"
+		help = help .. "/givetreadmill <3,9,25> <playerName> - Libera esteira para outro\n"
+		help = help .. "/givespeed <0-4> <playerName> - Speed boost para outro\n"
+		help = help .. "/givewin <0-4> <playerName> - Win boost para outro\n\n"
+		help = help .. "EXEMPLOS:\n"
+		help = help .. "/giveall Lucas - Dá tudo para player Lucas\n"
+		help = help .. "/givespeed 4 Joao - Dá speed 16x para Joao\n"
+		help = help .. "/givetreadmill 25 Maria - Dá esteira 25x para Maria\n\n"
+		help = help .. "NÍVEIS: 0=1x, 1=2x, 2=4x, 3=8x, 4=16x"
+		return help
 	end,
 }
 
