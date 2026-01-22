@@ -28,111 +28,211 @@ if not AdminAPI then
 	return
 end
 
+-- Helper: Encontrar player por nome ou UserId
+local function findPlayerByNameOrId(identifier)
+	-- Tentar como UserId primeiro
+	local userId = tonumber(identifier)
+	if userId then
+		return Players:GetPlayerByUserId(userId)
+	end
+
+	-- Tentar como nome (case insensitive, partial match)
+	identifier = string.lower(identifier)
+	for _, player in ipairs(Players:GetPlayers()) do
+		if string.lower(player.Name):find(identifier) or string.lower(player.DisplayName):find(identifier) then
+			return player
+		end
+	end
+
+	return nil
+end
+
+-- Helper: Liberar tudo para um player
+local function giveAllToPlayer(targetPlayer)
+	-- Libera todas as esteiras e boosts
+	targetPlayer:SetAttribute("TreadmillX3Owned", true)
+	targetPlayer:SetAttribute("TreadmillX9Owned", true)
+	targetPlayer:SetAttribute("TreadmillX25Owned", true)
+	targetPlayer:SetAttribute("SpeedBoostLevel", 4)
+	targetPlayer:SetAttribute("SpeedBoostActive", true)
+	targetPlayer:SetAttribute("CurrentSpeedBoostMultiplier", 16)
+	targetPlayer:SetAttribute("WinBoostLevel", 4)
+	targetPlayer:SetAttribute("WinBoostActive", true)
+	targetPlayer:SetAttribute("CurrentWinBoostMultiplier", 16)
+
+	-- Salvar no DataStore
+	local data = AdminAPI.getPlayerData(targetPlayer.UserId)
+	if data then
+		data.TreadmillX3Owned = true
+		data.TreadmillX9Owned = true
+		data.TreadmillX25Owned = true
+		data.SpeedBoostLevel = 4
+		data.SpeedBoostActive = true
+		data.CurrentSpeedBoostMultiplier = 16
+		data.WinBoostLevel = 4
+		data.WinBoostActive = true
+		data.CurrentWinBoostMultiplier = 16
+
+		AdminAPI.saveAll(targetPlayer, data, "admin_giveall")
+	end
+end
+
 -- Comandos disponíveis
 local commands = {
-	["/giveall"] = function(player)
-		-- Libera todas as esteiras e boosts
-		player:SetAttribute("TreadmillX3Owned", true)
-		player:SetAttribute("TreadmillX9Owned", true)
-		player:SetAttribute("TreadmillX25Owned", true)
-		player:SetAttribute("SpeedBoostLevel", 4)
-		player:SetAttribute("SpeedBoostActive", true)
-		player:SetAttribute("CurrentSpeedBoostMultiplier", 16)
-		player:SetAttribute("WinBoostLevel", 4)
-		player:SetAttribute("WinBoostActive", true)
-		player:SetAttribute("CurrentWinBoostMultiplier", 16)
+	["/giveall"] = function(player, args)
+		-- Se tiver argumento, dar para outro player
+		if args[1] then
+			local targetPlayer = findPlayerByNameOrId(args[1])
+			if not targetPlayer then
+				return "❌ Player '" .. args[1] .. "' não encontrado online"
+			end
 
-		-- Salvar no DataStore
-		local data = AdminAPI.getPlayerData(player.UserId)
-		if data then
-			data.TreadmillX3Owned = true
-			data.TreadmillX9Owned = true
-			data.TreadmillX25Owned = true
-			data.SpeedBoostLevel = 4
-			data.SpeedBoostActive = true
-			data.CurrentSpeedBoostMultiplier = 16
-			data.WinBoostLevel = 4
-			data.WinBoostActive = true
-			data.CurrentWinBoostMultiplier = 16
-
-			AdminAPI.saveAll(player, data, "admin_giveall")
+			giveAllToPlayer(targetPlayer)
+			return "✅ TUDO LIBERADO para " .. targetPlayer.Name .. "! (Esteiras 3x/9x/25x + Speed Boost 16x + Win Boost 16x)"
+		else
+			-- Dar para si mesmo
+			giveAllToPlayer(player)
+			return "✅ TUDO LIBERADO! (Esteiras 3x/9x/25x + Speed Boost 16x + Win Boost 16x)"
 		end
-
-		return "✅ TUDO LIBERADO! (Esteiras 3x/9x/25x + Speed Boost 16x + Win Boost 16x)"
 	end,
 
 	["/givetreadmill"] = function(player, args)
+		if not args[1] then
+			return "❌ Use: /givetreadmill <3|9|25> [playerName]"
+		end
+
 		local multiplier = tonumber(args[1])
 		if not multiplier or (multiplier ~= 3 and multiplier ~= 9 and multiplier ~= 25) then
-			return "❌ Use: /givetreadmill <3|9|25>"
+			return "❌ Use: /givetreadmill <3|9|25> [playerName]"
+		end
+
+		-- Se tiver segundo argumento, dar para outro player
+		local targetPlayer = player
+		if args[2] then
+			targetPlayer = findPlayerByNameOrId(args[2])
+			if not targetPlayer then
+				return "❌ Player '" .. args[2] .. "' não encontrado online"
+			end
 		end
 
 		local key = "TreadmillX" .. multiplier .. "Owned"
-		player:SetAttribute(key, true)
+		targetPlayer:SetAttribute(key, true)
 
-		local data = AdminAPI.getPlayerData(player.UserId)
+		local data = AdminAPI.getPlayerData(targetPlayer.UserId)
 		if data then
 			data[key] = true
-			AdminAPI.saveAll(player, data, "admin_treadmill")
+			AdminAPI.saveAll(targetPlayer, data, "admin_treadmill")
 		end
 
-		return "✅ Esteira " .. multiplier .. "x liberada!"
+		if targetPlayer == player then
+			return "✅ Esteira " .. multiplier .. "x liberada!"
+		else
+			return "✅ Esteira " .. multiplier .. "x liberada para " .. targetPlayer.Name .. "!"
+		end
 	end,
 
 	["/givespeed"] = function(player, args)
+		if not args[1] then
+			return "❌ Use: /givespeed <0-4> [playerName] (0=1x, 1=2x, 2=4x, 3=8x, 4=16x)"
+		end
+
 		local level = tonumber(args[1])
 		if not level or level < 0 or level > 4 then
-			return "❌ Use: /givespeed <0-4> (0=1x, 1=2x, 2=4x, 3=8x, 4=16x)"
+			return "❌ Use: /givespeed <0-4> [playerName] (0=1x, 1=2x, 2=4x, 3=8x, 4=16x)"
+		end
+
+		-- Se tiver segundo argumento, dar para outro player
+		local targetPlayer = player
+		if args[2] then
+			targetPlayer = findPlayerByNameOrId(args[2])
+			if not targetPlayer then
+				return "❌ Player '" .. args[2] .. "' não encontrado online"
+			end
 		end
 
 		local multiplier = level > 0 and math.pow(2, level) or 1
 
-		player:SetAttribute("SpeedBoostLevel", level)
-		player:SetAttribute("SpeedBoostActive", level > 0)
-		player:SetAttribute("CurrentSpeedBoostMultiplier", multiplier)
+		targetPlayer:SetAttribute("SpeedBoostLevel", level)
+		targetPlayer:SetAttribute("SpeedBoostActive", level > 0)
+		targetPlayer:SetAttribute("CurrentSpeedBoostMultiplier", multiplier)
 
-		local data = AdminAPI.getPlayerData(player.UserId)
+		local data = AdminAPI.getPlayerData(targetPlayer.UserId)
 		if data then
 			data.SpeedBoostLevel = level
 			data.SpeedBoostActive = level > 0
 			data.CurrentSpeedBoostMultiplier = multiplier
-			AdminAPI.saveAll(player, data, "admin_speedboost")
+			AdminAPI.saveAll(targetPlayer, data, "admin_speedboost")
 		end
 
-		return "✅ Speed Boost " .. multiplier .. "x liberado!"
+		if targetPlayer == player then
+			return "✅ Speed Boost " .. multiplier .. "x liberado!"
+		else
+			return "✅ Speed Boost " .. multiplier .. "x liberado para " .. targetPlayer.Name .. "!"
+		end
 	end,
 
 	["/givewin"] = function(player, args)
+		if not args[1] then
+			return "❌ Use: /givewin <0-4> [playerName] (0=1x, 1=2x, 2=4x, 3=8x, 4=16x)"
+		end
+
 		local level = tonumber(args[1])
 		if not level or level < 0 or level > 4 then
-			return "❌ Use: /givewin <0-4> (0=1x, 1=2x, 2=4x, 3=8x, 4=16x)"
+			return "❌ Use: /givewin <0-4> [playerName] (0=1x, 1=2x, 2=4x, 3=8x, 4=16x)"
+		end
+
+		-- Se tiver segundo argumento, dar para outro player
+		local targetPlayer = player
+		if args[2] then
+			targetPlayer = findPlayerByNameOrId(args[2])
+			if not targetPlayer then
+				return "❌ Player '" .. args[2] .. "' não encontrado online"
+			end
 		end
 
 		local multiplier = level > 0 and math.pow(2, level) or 1
 
-		player:SetAttribute("WinBoostLevel", level)
-		player:SetAttribute("WinBoostActive", level > 0)
-		player:SetAttribute("CurrentWinBoostMultiplier", multiplier)
+		targetPlayer:SetAttribute("WinBoostLevel", level)
+		targetPlayer:SetAttribute("WinBoostActive", level > 0)
+		targetPlayer:SetAttribute("CurrentWinBoostMultiplier", multiplier)
 
-		local data = AdminAPI.getPlayerData(player.UserId)
+		local data = AdminAPI.getPlayerData(targetPlayer.UserId)
 		if data then
 			data.WinBoostLevel = level
 			data.WinBoostActive = level > 0
 			data.CurrentWinBoostMultiplier = multiplier
-			AdminAPI.saveAll(player, data, "admin_winboost")
+			AdminAPI.saveAll(targetPlayer, data, "admin_winboost")
 		end
 
-		return "✅ Win Boost " .. multiplier .. "x liberado!"
+		if targetPlayer == player then
+			return "✅ Win Boost " .. multiplier .. "x liberado!"
+		else
+			return "✅ Win Boost " .. multiplier .. "x liberado para " .. targetPlayer.Name .. "!"
+		end
 	end,
 
 	["/adminhelp"] = function(player)
 		return [[
 🔧 COMANDOS ADMIN DISPONÍVEIS:
-/giveall - Libera tudo (esteiras + boosts máximos)
-/givetreadmill <3|9|25> - Libera esteira específica
-/givespeed <0-4> - Speed boost (0=1x, 1=2x, 2=4x, 3=8x, 4=16x)
-/givewin <0-4> - Win boost (0=1x, 1=2x, 2=4x, 3=8x, 4=16x)
-/adminhelp - Mostra esta mensagem
+
+PARA VOCÊ MESMO:
+/giveall - Libera tudo para você
+/givetreadmill <3|9|25> - Libera esteira para você
+/givespeed <0-4> - Speed boost para você
+/givewin <0-4> - Win boost para você
+
+PARA OUTROS PLAYERS:
+/giveall <playerName> - Libera tudo para outro player
+/givetreadmill <3|9|25> <playerName> - Libera esteira para outro
+/givespeed <0-4> <playerName> - Speed boost para outro
+/givewin <0-4> <playerName> - Win boost para outro
+
+EXEMPLOS:
+/giveall Lucas - Dá tudo para player "Lucas"
+/givespeed 4 Joao - Dá speed 16x para "Joao"
+/givetreadmill 25 Maria - Dá esteira 25x para "Maria"
+
+NÍVEIS: 0=1x, 1=2x, 2=4x, 3=8x, 4=16x
 ]]
 	end,
 }
