@@ -442,7 +442,7 @@ UpdateUIEvent.OnClientEvent:Connect(updateUI)
 
 -- ==================== SISTEMA DE AVISO DE REBIRTH CAP ====================
 local lastRebirthWarning = 0
-local REBIRTH_WARNING_COOLDOWN = 180  -- 3 minutos entre avisos
+local REBIRTH_WARNING_COOLDOWN = 120  -- 🔄 2 minutos entre avisos (era 180)
 local rebirthGlowTween = nil
 
 -- Criar notificação sutil no topo da tela
@@ -587,7 +587,10 @@ end
 
 -- Monitorar estado de rebirth cap
 local isAtCap = false
+local currentPlayerData = nil  -- 🔄 Armazena dados atuais do player
+
 UpdateUIEvent.OnClientEvent:Connect(function(data)
+	currentPlayerData = data  -- 🔄 Atualiza dados armazenados
 	local wasAtCap = isAtCap
 	isAtCap = data.AtRebirthCap or false
 
@@ -618,6 +621,33 @@ UpdateUIEvent.OnClientEvent:Connect(function(data)
 			print("[UIHandler] ⏰ Cooldown de aviso passou, mostrando novamente")
 			showRebirthWarning()
 			lastRebirthWarning = tick()
+		end
+	end
+end)
+
+-- 🔄 LOOP INDEPENDENTE: Verifica a cada 2 minutos se está no cap
+task.spawn(function()
+	while true do
+		task.wait(120)  -- 2 minutos
+
+		-- Só mostra se estiver no cap e não estiver no nível máximo
+		if currentPlayerData and isAtCap then
+			-- Verificar se não está no último tier (nível máximo do jogo)
+			local nextTier = rebirthTiers[currentPlayerData.Rebirths + 1]
+			local isAtMaxLevel = nextTier == nil  -- Se não há próximo tier, está no máximo
+
+			if not isAtMaxLevel then
+				-- Verificar cooldown
+				local timeSinceLastWarning = tick() - lastRebirthWarning
+
+				if timeSinceLastWarning >= 120 then  -- 2 minutos (pode ser diferente do REBIRTH_WARNING_COOLDOWN)
+					print("[UIHandler] ⏰ Loop automático: Mostrando aviso de cap (2min)")
+					showRebirthWarning()
+					lastRebirthWarning = tick()
+				end
+			else
+				print("[UIHandler] 🎉 Player está no nível máximo do jogo, não mostrando aviso")
+			end
 		end
 	end
 end)
