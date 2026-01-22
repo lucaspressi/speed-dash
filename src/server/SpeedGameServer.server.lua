@@ -16,7 +16,7 @@ local ADMIN_USER_IDS = {
 local WELCOME_BADGE_ID = 0
 local REBIRTH_BADGE_ID = 0
 
-local GROUP_ID = 0
+local GROUP_ID = 848320098  -- Speed Dash Community Group ID
 local GIFT_REWARD = 15000
 
 -- Dev Product IDs (speed packs)
